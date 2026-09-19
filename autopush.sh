@@ -60,4 +60,4 @@ while true; do
     fi
 
     sleep "$CHECK_INTERVAL"
-done
+done   

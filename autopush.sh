@@ -5,7 +5,7 @@
 # ============================================================
 # Time interval in seconds:
 # 60 = 1 minute | 120 = 2 minutes | 300 = 5 minutes
-CHECK_INTERVAL=120
+CHECK_INTERVAL=05
 REMOTE="origin"
 
 # Terminal Colors

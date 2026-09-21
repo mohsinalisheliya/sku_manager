@@ -140,9 +140,15 @@ def toggle_listed(request, pk):
     item.save(update_fields=['is_listed', 'updated_at'])
     return redirect(request.META.get('HTTP_REFERER', 'sku_inventory'))
 
-def adjust_stock(request, pk, delta):
+# sku_manager/views.py
+
+def adjust_stock(request, pk, action):
     item = get_object_or_404(JewelrySKU, pk=pk)
-    item.stock = max(0, item.stock + int(delta))
+    if action == 'dec':
+        item.stock = max(0, item.stock - 1)
+    elif action == 'inc':
+        item.stock += 1
+        
     item.save(update_fields=['stock', 'updated_at'])
     return redirect(request.META.get('HTTP_REFERER', 'sku_inventory'))
 

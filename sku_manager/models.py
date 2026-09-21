@@ -30,14 +30,18 @@ class JewelrySKU(models.Model):
     ]
 
     category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='BGL')
-    style = models.CharField(max_length=20, default='')
-    name = models.CharField(max_length=50, default='')
+    style = models.CharField(max_length=20, default='ADC')
+    name = models.CharField(max_length=50, default='LOVE')
     color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='GLD')
-    size = models.CharField(max_length=20, default='')
-    number = models.CharField(max_length=10, default='')
+    size = models.CharField(max_length=20, default='2.4')
+    number = models.CharField(max_length=10, default='001')
+    
+    # Inventory & Media
+    image = models.ImageField(upload_to='products/', blank=True, null=True)
+    stock = models.IntegerField(default=1)
+    is_listed = models.BooleanField(default=False)
     
     sku = models.CharField(max_length=100, unique=True, editable=False)
-    is_listed = models.BooleanField(default=False)  # <-- Added Field
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

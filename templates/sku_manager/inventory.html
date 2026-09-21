@@ -113,11 +113,11 @@
             <!-- Stock Controls -->
             <td class="py-3 px-4 text-center whitespace-nowrap">
               <div class="inline-flex items-center gap-1.5 bg-slate-950/70 border border-slate-800 rounded-lg p-1">
-                <a href="{% url 'sku_adjust_stock' item.pk -1 %}" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 text-xs font-bold transition">−</a>
+                <a href="{% url 'sku_adjust_stock' item.pk 'dec' %}" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 text-xs font-bold transition">−</a>
                 <span class="font-mono font-bold text-xs min-w-[28px] text-center {% if item.stock == 0 %}text-rose-400{% elif item.stock <= 5 %}text-amber-400{% else %}text-emerald-400{% endif %}">
                   {{ item.stock }}
                 </span>
-                <a href="{% url 'sku_adjust_stock' item.pk 1 %}" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 text-slate-400 text-xs font-bold transition">+</a>
+                <a href="{% url 'sku_adjust_stock' item.pk 'inc' %}" class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 text-slate-400 text-xs font-bold transition">+</a>
               </div>
               <div class="mt-0.5">
                 {% if item.stock == 0 %}

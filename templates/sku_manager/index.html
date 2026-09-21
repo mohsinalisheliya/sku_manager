@@ -30,10 +30,10 @@
     <header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-6 gap-4">
       <div>
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-semibold uppercase tracking-wider mb-2">
-          Django DB Connected
+          Inventory & Media Engine
         </div>
         <h1 class="text-3xl font-extrabold tracking-tight text-white">Jewelry SKU Master</h1>
-        <p class="text-slate-400 text-sm mt-1">Generate, validate, store, and track listed catalog codes.</p>
+        <p class="text-slate-400 text-sm mt-1">Generate catalog codes, manage product photos, and track warehouse stock.</p>
       </div>
       <div class="flex items-center gap-3">
         <a href="{% url 'sku_export_csv' %}" id="exportCsvBtn" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-sm">
@@ -84,7 +84,7 @@
     <div id="formContainer" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
       <!-- Input Form -->
-      <form method="POST" action="{% if is_edit %}{% url 'sku_edit' edit_item.pk %}{% else %}{% url 'sku_dashboard' %}{% endif %}" class="lg:col-span-7 bg-slate-800/40 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <form method="POST" enctype="multipart/form-data" action="{% if is_edit %}{% url 'sku_edit' edit_item.pk %}{% else %}{% url 'sku_dashboard' %}{% endif %}" class="lg:col-span-7 bg-slate-800/40 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
         {% csrf_token %}
         <h2 class="text-lg font-bold text-white flex items-center gap-2">
           <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
@@ -112,11 +112,10 @@
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Style Code
-              <span class="text-slate-500 font-normal lowercase">(e.g., ADC, 1GP, PND)</span>
+              <span class="text-slate-500 font-normal lowercase">(e.g., ADC, PND)</span>
             </label>
             <input type="text" name="style" id="fieldStyle" placeholder="ADC" value="{% if is_edit %}{{ edit_item.style }}{% else %}ADC{% endif %}" maxlength="10"
               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono uppercase focus:outline-none focus:border-amber-500 transition">
-            <p class="text-[11px] text-slate-500 mt-1">Custom style code typed by you.</p>
           </div>
 
           <!-- Name -->
@@ -127,7 +126,6 @@
             </label>
             <input type="text" name="name" id="fieldName" placeholder="LOVE" value="{% if is_edit %}{{ edit_item.name }}{% else %}LOVE{% endif %}" maxlength="20"
               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white uppercase focus:outline-none focus:border-amber-500 transition">
-            <p class="text-[11px] text-slate-500 mt-1">Alphanumeric only, automatically sanitized.</p>
           </div>
 
           <!-- Color -->
@@ -167,14 +165,39 @@
             </select>
           </div>
 
-          <!-- Serial Number -->
-          <div class="sm:col-span-2">
+          <!-- Sequence Number -->
+          <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Sequence / Serial</label>
-              <button type="button" id="autoIncBtn" class="text-xs text-amber-400 hover:text-amber-300 underline font-medium">Auto-detect next number</button>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Sequence #</label>
+              <button type="button" id="autoIncBtn" class="text-xs text-amber-400 hover:text-amber-300 underline font-medium">Auto</button>
             </div>
             <input type="text" name="number" id="fieldNumber" value="{% if is_edit %}{{ edit_item.number }}{% else %}{{ next_serial }}{% endif %}" maxlength="6"
               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-500 transition">
+          </div>
+
+          <!-- Stock Quantity -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Stock Quantity</label>
+            <input type="number" name="stock" id="fieldStock" min="0" value="{% if is_edit %}{{ edit_item.stock }}{% else %}10{% endif %}"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-500 transition">
+          </div>
+
+          <!-- Image Upload -->
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Product Photo</label>
+            <div class="flex items-center gap-4">
+              <input type="file" name="image" id="fieldImage" accept="image/*"
+                class="block w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-amber-400 hover:file:bg-slate-700 cursor-pointer bg-slate-900 rounded-lg border border-slate-700">
+              
+              <div id="imagePreviewContainer" class="w-12 h-12 rounded-lg border border-slate-700 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
+                {% if is_edit and edit_item.image %}
+                  <img id="imagePreview" src="{{ edit_item.image.url }}" class="w-full h-full object-cover">
+                {% else %}
+                  <img id="imagePreview" src="" class="w-full h-full object-cover hidden">
+                  <span id="noImagePlaceholder" class="text-[10px] text-slate-600 font-mono">No Pic</span>
+                {% endif %}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -238,13 +261,13 @@
         <div>
           <h2 class="text-lg font-bold text-white flex items-center gap-2">
             <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zm0 4h16M9 4v4m6-4v4"></path></svg>
-            Stored Database Records (<span>{{ skus.count }}</span>)
+            Inventory Records (<span>{{ skus.count }}</span>)
           </h2>
-          <p class="text-xs text-slate-400">Click the tickmark badge on any SKU to toggle its listing status.</p>
+          <p class="text-xs text-slate-400">Track listings, product photos, and live warehouse inventory units.</p>
         </div>
 
         <form method="GET" action="{% url 'sku_dashboard' %}" class="flex items-center gap-2">
-          <input type="text" name="q" value="{{ search_query }}" placeholder="Search saved SKUs..." 
+          <input type="text" name="q" value="{{ search_query }}" placeholder="Search SKU, Name..." 
             class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition w-48 sm:w-64">
           <button type="submit" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg font-medium">Filter</button>
           {% if search_query %}
@@ -258,15 +281,15 @@
         <table class="w-full text-left text-sm text-slate-300">
           <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
             <tr>
-              <th class="py-3.5 px-4 font-semibold text-center w-24">Listed</th>
+              <th class="py-3.5 px-3 font-semibold text-center w-16">Listed</th>
+              <th class="py-3.5 px-3 font-semibold text-center w-16">Photo</th>
               <th class="py-3.5 px-4 font-semibold">SKU ID</th>
-              <th class="py-3.5 px-4 font-semibold">Category</th>
-              <th class="py-3.5 px-4 font-semibold">Style</th>
+              <th class="py-3.5 px-3 font-semibold">Stock</th>
+              <th class="py-3.5 px-3 font-semibold">Category</th>
+              <th class="py-3.5 px-3 font-semibold">Style</th>
               <th class="py-3.5 px-4 font-semibold">Design Name</th>
-              <th class="py-3.5 px-4 font-semibold">Color</th>
-              <th class="py-3.5 px-4 font-semibold">Size</th>
-              <th class="py-3.5 px-4 font-semibold">Seq #</th>
-              <th class="py-3.5 px-4 font-semibold">Date</th>
+              <th class="py-3.5 px-3 font-semibold">Color</th>
+              <th class="py-3.5 px-3 font-semibold">Size</th>
               <th class="py-3.5 px-4 text-right font-semibold">Actions</th>
             </tr>
           </thead>
@@ -274,30 +297,53 @@
             {% for item in skus %}
               <tr class="transition {% if is_edit and edit_item.sku == item.sku %}bg-amber-500/10 border-l-4 border-amber-500{% elif item.is_listed %}bg-emerald-950/20 hover:bg-emerald-900/30{% else %}hover:bg-slate-800/40{% endif %}">
                 
-                <!-- 1-Click Listed Tickmark Button -->
-                <td class="py-3 px-4 text-center">
+                <!-- Listed Toggle Button -->
+                <td class="py-3 px-3 text-center">
                   <a href="{% url 'sku_toggle_listed' item.pk %}" 
-                     title="{% if item.is_listed %}Mark as Unlisted{% else %}Mark as Listed on E-Commerce{% endif %}"
-                     class="inline-flex items-center justify-center w-8 h-8 rounded-lg transition border {% if item.is_listed %}bg-emerald-500 text-slate-950 border-emerald-400 hover:bg-emerald-400 shadow-md shadow-emerald-500/20{% else %}bg-slate-900/80 text-slate-600 border-slate-700 hover:border-amber-500 hover:text-amber-400{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                     title="{% if item.is_listed %}Mark as Unlisted{% else %}Mark as Listed{% endif %}"
+                     class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition border {% if item.is_listed %}bg-emerald-500 text-slate-950 border-emerald-400 hover:bg-emerald-400 shadow-md shadow-emerald-500/20{% else %}bg-slate-900/80 text-slate-600 border-slate-700 hover:border-amber-500 hover:text-amber-400{% endif %}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
                     </svg>
                   </a>
                 </td>
 
-                <td class="py-3 px-4 font-mono font-bold {% if item.is_listed %}text-emerald-400{% else %}text-amber-400{% endif %}">
-                  {{ item.sku }}
-                  {% if item.is_listed %}
-                    <span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-sans font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">LISTED</span>
+                <!-- Photo Thumbnail -->
+                <td class="py-3 px-3 text-center">
+                  {% if item.image %}
+                    <a href="{{ item.image.url }}" target="_blank" title="View Full Size">
+                      <img src="{{ item.image.url }}" class="w-10 h-10 object-cover rounded-lg border border-slate-700 mx-auto hover:scale-110 transition">
+                    </a>
+                  {% else %}
+                    <div class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-[9px] text-slate-600 mx-auto font-mono">
+                      No Pic
+                    </div>
                   {% endif %}
                 </td>
-                <td class="py-3 px-4 text-xs font-semibold text-blue-300">{{ item.category }}</td>
-                <td class="py-3 px-4 text-xs font-mono text-purple-300">{{ item.style }}</td>
+
+                <!-- SKU Code -->
+                <td class="py-3 px-4 font-mono font-bold {% if item.is_listed %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                  {{ item.sku }}
+                </td>
+
+                <!-- Stock Counter & Quick Adjusters -->
+                <td class="py-3 px-3 whitespace-nowrap">
+                  <div class="flex items-center gap-1.5">
+                    <a href="{% url 'sku_stock_adjust' item.pk 'dec' %}" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 font-mono text-xs font-bold transition">−</a>
+                    
+                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold border {% if item.stock <= 0 %}bg-rose-500/20 text-rose-300 border-rose-500/40{% elif item.stock <= 5 %}bg-amber-500/20 text-amber-300 border-amber-500/40{% else %}bg-emerald-500/20 text-emerald-300 border-emerald-500/40{% endif %}">
+                      {{ item.stock }}
+                    </span>
+
+                    <a href="{% url 'sku_stock_adjust' item.pk 'inc' %}" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 font-mono text-xs font-bold transition">+</a>
+                  </div>
+                </td>
+
+                <td class="py-3 px-3 text-xs font-semibold text-blue-300">{{ item.category }}</td>
+                <td class="py-3 px-3 text-xs font-mono text-purple-300">{{ item.style }}</td>
                 <td class="py-3 px-4 font-medium text-white">{{ item.name }}</td>
-                <td class="py-3 px-4 text-xs text-amber-200">{{ item.color }}</td>
-                <td class="py-3 px-4 text-xs text-rose-300">{{ item.size }}</td>
-                <td class="py-3 px-4 font-mono text-xs text-indigo-300">{{ item.number }}</td>
-                <td class="py-3 px-4 text-[11px] text-slate-500">{{ item.created_at|date:"d M Y" }}</td>
+                <td class="py-3 px-3 text-xs text-amber-200">{{ item.color }}</td>
+                <td class="py-3 px-3 text-xs text-rose-300">{{ item.size }}</td>
                 <td class="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
                   <a href="{% url 'sku_edit' item.pk %}" class="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 px-2.5 py-1 rounded transition border border-blue-500/30">Edit</a>
                   <button type="button" onclick="copySingleSKU('{{ item.sku }}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded transition border border-slate-700">Copy</button>
@@ -354,6 +400,24 @@
     const copySkuBtn = document.getElementById('copySkuBtn');
     const copyBtnText = document.getElementById('copyBtnText');
     const toast = document.getElementById('toast');
+
+    // Live Image Preview Handler
+    const fieldImage = document.getElementById('fieldImage');
+    const imagePreview = document.getElementById('imagePreview');
+    const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+
+    fieldImage.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          imagePreview.src = e.target.result;
+          imagePreview.classList.remove('hidden');
+          if (noImagePlaceholder) noImagePlaceholder.classList.add('hidden');
+        }
+        reader.readAsDataURL(file);
+      }
+    });
 
     function sanitizeSlug(val) {
       return (val || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -457,4 +521,4 @@
     });
   </script>
 </body>
-</html>        
+</html>

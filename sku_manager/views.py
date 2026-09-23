@@ -5,7 +5,16 @@ from django.http import HttpResponse
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import JewelrySKU
+from .models import JewelrySKU, Platform, PlatformPrice
+
+DEFAULT_PLATFORMS = ['Flipkart', 'Amazon', 'Meesho', 'Website']
+
+def get_or_seed_platforms():
+    # Pehli baar run hone par default platforms auto-create honge
+    if not Platform.objects.exists():
+        for name in DEFAULT_PLATFORMS:
+            Platform.objects.get_or_create(name=name)
+    return Platform.objects.all().order_by('id')
 
 def get_next_serial():
     latest = JewelrySKU.objects.order_by('-id').first()
@@ -16,8 +25,9 @@ def get_next_serial():
     except (ValueError, TypeError):
         return '001'
 
-# Page 1: SKU Generator Form
 def sku_generate(request):
+    platforms = get_or_seed_platforms()
+
     if request.method == 'POST':
         category = request.POST.get('category', '').strip()
         style = request.POST.get('style', '').strip()
@@ -26,6 +36,8 @@ def sku_generate(request):
         size = request.POST.get('size', '').strip()
         number = request.POST.get('number', '').strip()
         stock = request.POST.get('stock', '0').strip()
+        purchase_price = request.POST.get('purchase_price', '0').strip()
+        selling_price = request.POST.get('selling_price', '0').strip()
         image = request.FILES.get('image')
 
         try:
@@ -37,10 +49,23 @@ def sku_generate(request):
                 size=size,
                 number=number,
                 stock=int(stock) if stock.isdigit() else 0,
+                purchase_price=float(purchase_price) if purchase_price else 0.0,
+                selling_price=float(selling_price) if selling_price else 0.0,
                 image=image
             )
             item.save()
-            messages.success(request, f"SKU '{item.sku}' generated and saved!")
+
+            # Dynamic Platform Prices Save
+            for p in platforms:
+                p_val = request.POST.get(f'platform_price_{p.id}', '').strip()
+                if p_val:
+                    PlatformPrice.objects.create(
+                        sku=item,
+                        platform=p,
+                        price=float(p_val)
+                    )
+
+            messages.success(request, f"SKU '{item.sku}' with prices successfully saved!")
             return redirect('sku_inventory')
         except Exception as e:
             messages.error(request, f"Error saving SKU: {str(e)}")
@@ -50,15 +75,16 @@ def sku_generate(request):
         'is_edit': False,
         'next_serial': get_next_serial(),
         'existing_skus': existing_skus,
+        'platforms': platforms,
         'active_page': 'generator',
     })
 
-# Page 2: Dedicated Inventory & Data View (with Pagination)
 def sku_inventory(request):
     search_query = request.GET.get('q', '').strip()
     filter_status = request.GET.get('status', '').strip()
+    platforms = get_or_seed_platforms()
     
-    sku_list = JewelrySKU.objects.all()
+    sku_list = JewelrySKU.objects.prefetch_related('platform_prices__platform').all()
 
     if search_query:
         sku_list = sku_list.filter(
@@ -75,7 +101,6 @@ def sku_inventory(request):
     elif filter_status == 'out_of_stock':
         sku_list = sku_list.filter(stock=0)
 
-    # 10 items per page
     paginator = Paginator(sku_list, 10)
     page = request.GET.get('page')
 
@@ -88,15 +113,16 @@ def sku_inventory(request):
 
     return render(request, 'sku_manager/inventory.html', {
         'skus': skus,
+        'platforms': platforms,
         'search_query': search_query,
         'filter_status': filter_status,
         'total_count': sku_list.count(),
         'active_page': 'inventory',
     })
 
-# Edit Record
 def sku_edit(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
+    platforms = get_or_seed_platforms()
 
     if request.method == 'POST':
         item.category = request.POST.get('category', '').strip()
@@ -109,23 +135,57 @@ def sku_edit(request, pk):
         stock_val = request.POST.get('stock', '0').strip()
         item.stock = int(stock_val) if stock_val.isdigit() else 0
 
+        p_price = request.POST.get('purchase_price', '0').strip()
+        s_price = request.POST.get('selling_price', '0').strip()
+        item.purchase_price = float(p_price) if p_price else 0.0
+        item.selling_price = float(s_price) if s_price else 0.0
+
         if 'image' in request.FILES:
             item.image = request.FILES['image']
 
         try:
             item.save()
+
+            # Update or create platform prices
+            for p in platforms:
+                p_val = request.POST.get(f'platform_price_{p.id}', '').strip()
+                if p_val:
+                    PlatformPrice.objects.update_or_create(
+                        sku=item,
+                        platform=p,
+                        defaults={'price': float(p_val)}
+                    )
+                else:
+                    PlatformPrice.objects.filter(sku=item, platform=p).delete()
+
             messages.success(request, f"SKU updated to '{item.sku}'!")
             return redirect('sku_inventory')
         except Exception as e:
             messages.error(request, f"Error updating SKU: {str(e)}")
 
+    # Map existing prices for UI input values
+    current_prices = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
     existing_skus = list(JewelrySKU.objects.exclude(pk=pk).values_list('sku', flat=True))
+
     return render(request, 'sku_manager/generator.html', {
         'is_edit': True,
         'edit_item': item,
+        'platforms': platforms,
+        'current_prices': current_prices,
         'existing_skus': existing_skus,
         'active_page': 'generator',
     })
+
+def add_platform(request):
+    """Bina code badle naya platform UI se add karne ke liye"""
+    if request.method == 'POST':
+        name = request.POST.get('platform_name', '').strip()
+        if name:
+            Platform.objects.get_or_create(name=name)
+            messages.success(request, f"Platform '{name}' added successfully!")
+        else:
+            messages.error(request, "Platform name cannot be empty.")
+    return redirect(request.META.get('HTTP_REFERER', 'sku_generate'))
 
 def sku_delete(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
@@ -140,31 +200,42 @@ def toggle_listed(request, pk):
     item.save(update_fields=['is_listed', 'updated_at'])
     return redirect(request.META.get('HTTP_REFERER', 'sku_inventory'))
 
-# sku_manager/views.py
-
 def adjust_stock(request, pk, action):
     item = get_object_or_404(JewelrySKU, pk=pk)
     if action == 'dec':
         item.stock = max(0, item.stock - 1)
     elif action == 'inc':
         item.stock += 1
-        
     item.save(update_fields=['stock', 'updated_at'])
     return redirect(request.META.get('HTTP_REFERER', 'sku_inventory'))
 
 def export_csv(request):
+    platforms = Platform.objects.all().order_by('id')
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="jewelry_inventory.csv"'
 
     writer = csv.writer(response)
-    writer.writerow(['SKU', 'Category', 'Style', 'Name', 'Color', 'Size', 'Stock', 'Listed Status', 'Created At'])
+    
+    # Dynamic Headers with all platforms
+    headers = ['SKU', 'Category', 'Style', 'Name', 'Color', 'Size', 'Stock', 'Purchase Price (Rs)', 'Base Sell Price (Rs)']
+    for p in platforms:
+        headers.append(f"{p.name} Price (Rs)")
+    headers.extend(['Listed Status', 'Created At'])
+    writer.writerow(headers)
 
-    for obj in JewelrySKU.objects.all():
-        writer.writerow([
+    for obj in JewelrySKU.objects.prefetch_related('platform_prices__platform').all():
+        price_map = {pp.platform_id: pp.price for pp in obj.platform_prices.all()}
+        row = [
             obj.sku, obj.category, obj.style, obj.name,
             obj.color, obj.size, obj.stock,
+            obj.purchase_price, obj.selling_price
+        ]
+        for p in platforms:
+            row.append(price_map.get(p.id, ''))
+        row.extend([
             'Listed' if obj.is_listed else 'Unlisted',
             obj.created_at.strftime("%Y-%m-%d %H:%M")
         ])
+        writer.writerow(row)
 
     return response

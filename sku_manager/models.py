@@ -2,6 +2,13 @@
 from django.db import models
 import re
 
+class Platform(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 class JewelrySKU(models.Model):
     CATEGORY_CHOICES = [
         ('BGL', 'BGL - Bangles / Kadas'),
@@ -36,12 +43,15 @@ class JewelrySKU(models.Model):
     size = models.CharField(max_length=20, default='2.4')
     number = models.CharField(max_length=10, default='001')
     
-    # Inventory & Media
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
-    stock = models.IntegerField(default=1)
-    is_listed = models.BooleanField(default=False)
-    
     sku = models.CharField(max_length=100, unique=True, editable=False)
+    is_listed = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='products/', null=True, blank=True)
+    stock = models.PositiveIntegerField(default=0)
+
+    # Core Pricing Fields
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -67,3 +77,15 @@ class JewelrySKU(models.Model):
 
     def __str__(self):
         return self.sku
+
+
+class PlatformPrice(models.Model):
+    sku = models.ForeignKey(JewelrySKU, on_delete=models.CASCADE, related_name='platform_prices')
+    platform = models.ForeignKey(Platform, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    class Meta:
+        unique_together = ('sku', 'platform')
+
+    def __str__(self):
+        return f"{self.sku.sku} - {self.platform.name}: ₹{self.price}"

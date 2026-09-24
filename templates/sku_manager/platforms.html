@@ -1,0 +1,128 @@
+{% extends "sku_manager/base.html" %}
+
+{% block title %}Marketplace Channels - Velfira{% endblock %}
+
+{% block content %}
+<!-- Top Header -->
+<header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-6 gap-4">
+  <div>
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-semibold uppercase tracking-wider mb-2">
+      Channel Configurator
+    </div>
+    <h1 class="text-3xl font-extrabold tracking-tight text-white">Marketplace Channels</h1>
+    <p class="text-slate-400 text-sm mt-1">Manage selling platforms (Amazon, Flipkart, Meesho, Nykaa, etc.) dynamically.</p>
+  </div>
+  <a href="{% url 'sku_generate' %}" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-sm w-fit">
+    ← Back to SKU Generator
+  </a>
+</header>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+  
+  <!-- Left Column: Add New Marketplace Form -->
+  <div class="lg:col-span-5 bg-slate-800/40 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5 h-fit">
+    <div class="flex items-center gap-3">
+      <div class="p-2.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      </div>
+      <div>
+        <h2 class="text-lg font-bold text-white">Add New Marketplace</h2>
+        <p class="text-xs text-slate-400">Instantly creates pricing fields across all products.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'platform_manager' %}" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Platform Name</label>
+        <input type="text" name="platform_name" required placeholder="e.g. Myntra, Nykaa, Ajio, Shopify" 
+          class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition">
+      </div>
+
+      <!-- Quick Preset Suggestions -->
+      <div>
+        <span class="block text-[11px] text-slate-500 font-semibold uppercase tracking-wider mb-2">Quick Presets:</span>
+        <div class="flex flex-wrap gap-2 text-xs">
+          <button type="button" onclick="setPreset('Myntra')" class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-lg transition">+ Myntra</button>
+          <button type="button" onclick="setPreset('Nykaa')" class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-lg transition">+ Nykaa</button>
+          <button type="button" onclick="setPreset('Ajio')" class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-lg transition">+ Ajio</button>
+          <button type="button" onclick="setPreset('Shopify')" class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-lg transition">+ Shopify</button>
+          <button type="button" onclick="setPreset('Blinkit')" class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-lg transition">+ Blinkit</button>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Save Marketplace
+      </button>
+    </form>
+  </div>
+
+  <!-- Right Column: List of All Marketplaces -->
+  <div class="lg:col-span-7 bg-slate-800/40 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>Active Marketplaces</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-amber-400 font-mono">{{ platforms.count }}</span>
+        </h2>
+        <p class="text-xs text-slate-400">All channels configured for multi-platform pricing.</p>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto rounded-xl border border-slate-800">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="bg-slate-950/60 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
+          <tr>
+            <th class="py-3 px-4 font-semibold">Marketplace</th>
+            <th class="py-3 px-4 font-semibold text-center">Priced Products</th>
+            <th class="py-3 px-4 font-semibold">Created Date</th>
+            <th class="py-3 px-4 text-right font-semibold">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60 font-normal">
+          {% for platform in platforms %}
+            <tr class="hover:bg-slate-800/40 transition">
+              <td class="py-3.5 px-4 font-semibold text-white flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span class="text-sm font-bold text-amber-300">{{ platform.name }}</span>
+              </td>
+              <td class="py-3.5 px-4 text-center">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-slate-900 border border-slate-800 text-slate-300">
+                  {{ platform.linked_products }} items
+                </span>
+              </td>
+              <td class="py-3.5 px-4 text-xs text-slate-500 font-mono">
+                {{ platform.created_at|date:"d M Y" }}
+              </td>
+              <td class="py-3.5 px-4 text-right">
+                <a href="{% url 'platform_delete' platform.pk %}" 
+                   onclick="return confirm('Delete \'{{ platform.name }}\'? It will also remove {{ platform.name }} prices from all products.')"
+                   class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  Delete
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-10 text-slate-500 text-sm">
+                No marketplaces added yet.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function setPreset(name) {
+    const input = document.querySelector('input[name="platform_name"]');
+    input.value = name;
+    input.focus();
+  }
+</script>
+{% endblock %}

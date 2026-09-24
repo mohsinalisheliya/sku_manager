@@ -239,3 +239,40 @@ def export_csv(request):
         writer.writerow(row)
 
     return response
+
+
+# sku_manager/views.py ke andar add karein (ya update karein):
+from django.db.models import Count
+
+def platform_manager(request):
+    """Dedicated Page to View and Add Marketplace Platforms"""
+    # Default platforms seed agar pehle se nahi hain
+    get_or_seed_platforms()
+
+    if request.method == 'POST':
+        name = request.POST.get('platform_name', '').strip()
+        if name:
+            obj, created = Platform.objects.get_or_create(name=name)
+            if created:
+                messages.success(request, f"Marketplace '{name}' successfully added!")
+            else:
+                messages.info(request, f"Marketplace '{name}' already exists.")
+            return redirect('platform_manager')
+        else:
+            messages.error(request, "Marketplace name cannot be empty.")
+
+    # Fetch all platforms with total products linked to each
+    platforms = Platform.objects.annotate(linked_products=Count('platformprice')).order_by('-id')
+
+    return render(request, 'sku_manager/platforms.html', {
+        'platforms': platforms,
+        'active_page': 'platforms',
+    })
+
+def platform_delete(request, pk):
+    """Delete a marketplace platform"""
+    platform = get_object_or_404(Platform, pk=pk)
+    name = platform.name
+    platform.delete()
+    messages.info(request, f"Marketplace '{name}' and its linked pricing have been removed.")
+    return redirect('platform_manager')

@@ -31,22 +31,32 @@
       </div>
 
       <!-- Navigation Links -->
-      <nav class="space-y-1.5 pt-4">
-        <a href="{% url 'sku_generate' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition {% if active_page == 'generator' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-bold{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-white{% endif %}">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-          SKU Generator
-        </a>
+      <!-- Navigation Links section in templates/sku_manager/base.html -->
+<nav class="space-y-1.5 pt-4">
+  <!-- SKU Generator -->
+  <a href="{% url 'sku_generate' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition {% if active_page == 'generator' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-bold{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-white{% endif %}">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+    SKU Generator
+  </a>
 
-        <a href="{% url 'sku_inventory' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition {% if active_page == 'inventory' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-bold{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-white{% endif %}">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zm0 4h16M9 4v4m6-4v4"></path></svg>
-          Inventory Catalog
-        </a>
+  <!-- Inventory Catalog -->
+  <a href="{% url 'sku_inventory' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition {% if active_page == 'inventory' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-bold{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-white{% endif %}">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zm0 4h16M9 4v4m6-4v4"></path></svg>
+    Inventory Catalog
+  </a>
 
-        <a href="{% url 'sku_export_csv' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:bg-slate-800/80 hover:text-white transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          Export CSV
-        </a>
-      </nav>
+  <!-- Marketplaces (NEW) -->
+  <a href="{% url 'platform_manager' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition {% if active_page == 'platforms' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-bold{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-white{% endif %}">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+    Marketplaces
+  </a>
+
+  <!-- Export CSV -->
+  <a href="{% url 'sku_export_csv' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:bg-slate-800/80 hover:text-white transition">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+    Export CSV
+  </a>
+</nav>
     </div>
 
     <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-500 space-y-1">

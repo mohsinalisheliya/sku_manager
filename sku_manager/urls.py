@@ -11,4 +11,7 @@ urlpatterns = [
     path('stock/<int:pk>/<str:action>/', views.adjust_stock, name='sku_adjust_stock'),
     path('platform/add/', views.add_platform, name='add_platform'),  # <-- New URL
     path('export-csv/', views.export_csv, name='sku_export_csv'),
+
+    path('platforms/', views.platform_manager, name='platform_manager'),
+    path('platforms/delete/<int:pk>/', views.platform_delete, name='platform_delete'),
 ]

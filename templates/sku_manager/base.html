@@ -13,68 +13,70 @@
     .sku-mono { font-family: 'JetBrains Mono', monospace; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex antialiased">
 
-  <!-- Sidebar -->
-  <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-5 min-h-screen fixed left-0 top-0 z-30">
+  <!-- Reactive Sidebar (Collapses to icons, expands on hover) -->
+  <aside class="group fixed left-0 top-0 z-40 h-screen w-16 hover:w-60 transition-all duration-300 ease-in-out bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-2.5 shadow-2xl overflow-hidden">
+    
     <div class="space-y-6">
-      
-      <!-- Brand Logo -->
-      <div class="flex items-center gap-3 px-2">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+      <!-- Logo / Icon -->
+      <div class="flex items-center gap-3 px-1 py-1">
+        <div class="w-10 h-10 min-w-[40px] rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
           V
         </div>
-        <div>
+        <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
           <div class="font-extrabold text-white text-base tracking-wide leading-tight">VELFIRA</div>
-          <div class="text-[10px] text-amber-400 uppercase font-semibold tracking-wider">SKU & Inventory</div>
+          <div class="text-[9px] text-amber-400 uppercase font-semibold tracking-wider">SKU Studio</div>
         </div>
       </div>
 
       <!-- Navigation Links -->
-      <!-- Navigation Links section in templates/sku_manager/base.html -->
-<nav class="space-y-1.5 pt-4">
-  <!-- SKU Generator -->
-  <a href="{% url 'sku_generate' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition {% if active_page == 'generator' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-bold{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-white{% endif %}">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-    SKU Generator
-  </a>
+      <nav class="space-y-1.5">
+        <!-- SKU Generator -->
+        <a href="{% url 'sku_generate' %}" title="SKU Generator"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'generator' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">SKU Generator</span>
+        </a>
 
-  <!-- Inventory Catalog -->
-  <a href="{% url 'sku_inventory' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition {% if active_page == 'inventory' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-bold{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-white{% endif %}">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zm0 4h16M9 4v4m6-4v4"></path></svg>
-    Inventory Catalog
-  </a>
+        <!-- Inventory Catalog -->
+        <a href="{% url 'sku_inventory' %}" title="Inventory Catalog"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'inventory' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zm0 4h16M9 4v4m6-4v4"></path></svg>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Inventory View</span>
+        </a>
 
-  <!-- Marketplaces (NEW) -->
-  <a href="{% url 'platform_manager' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition {% if active_page == 'platforms' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-bold{% else %}text-slate-400 hover:bg-slate-800/80 hover:text-white{% endif %}">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-    Marketplaces
-  </a>
+        <!-- Marketplaces -->
+        <a href="{% url 'platform_manager' %}" title="Marketplace Channels"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'platforms' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Marketplaces</span>
+        </a>
 
-  <!-- Export CSV -->
-  <a href="{% url 'sku_export_csv' %}" class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:bg-slate-800/80 hover:text-white transition">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-    Export CSV
-  </a>
-</nav>
+        <!-- Export CSV -->
+        <a href="{% url 'sku_export_csv' %}" title="Export CSV"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition text-slate-400 hover:bg-slate-800 hover:text-white">
+          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Export CSV</span>
+        </a>
+      </nav>
     </div>
 
-    <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-500 space-y-1">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span class="text-slate-300 font-semibold">SQLite Active</span>
-      </div>
-      <p>Auto-Push Git Daemon: 5s</p>
+    <!-- Bottom Status Dot -->
+    <div class="px-2 py-2 flex items-center gap-3 text-slate-500">
+      <span class="w-2.5 h-2.5 min-w-[10px] rounded-full bg-emerald-400 animate-pulse"></span>
+      <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-[11px] text-slate-400 font-mono">SQLite Connected</span>
     </div>
   </aside>
 
-  <!-- Main Content Area -->
-  <main class="flex-1 ml-64 p-6 sm:p-10 min-h-screen bg-slate-900">
-    <div class="max-w-6xl mx-auto space-y-6">
+  <!-- Main Content Space (Utilizing 100% available screen) -->
+  <main class="flex-1 ml-16 p-4 sm:p-5 min-h-screen bg-slate-950 transition-all duration-300">
+    <div class="w-full space-y-4">
 
+      <!-- Flash Messages -->
       {% if messages %}
         {% for msg in messages %}
-          <div class="p-4 rounded-xl text-sm font-semibold border {% if msg.tags == 'error' %}bg-rose-500/10 border-rose-500/30 text-rose-300{% else %}bg-emerald-500/10 border-emerald-500/30 text-emerald-300{% endif %}">
+          <div class="px-4 py-2 rounded-xl text-xs font-semibold border {% if msg.tags == 'error' %}bg-rose-500/10 border-rose-500/30 text-rose-300{% else %}bg-emerald-500/10 border-emerald-500/30 text-emerald-300{% endif %}">
             {{ msg }}
           </div>
         {% endfor %}

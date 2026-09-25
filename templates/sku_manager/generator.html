@@ -1,267 +1,274 @@
 {% extends "sku_manager/base.html" %}
 
-{% block title %}SKU Generator & Pricing - Velfira{% endblock %}
+{% block title %}SKU Studio - Velfira{% endblock %}
 
 {% block content %}
-<header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-6 gap-4">
-  <div>
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-semibold uppercase tracking-wider mb-2">
-      Multi-Channel Pricing
-    </div>
-    <h1 class="text-3xl font-extrabold tracking-tight text-white">
-      {% if is_edit %}Edit Product & Platform Pricing{% else %}Generate SKU & Set Prices{% endif %}
+<!-- Compact Top Bar -->
+<div class="flex items-center justify-between pb-3 border-b border-slate-800">
+  <div class="flex items-center gap-3">
+    <span class="px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono font-bold text-xs uppercase">
+      {% if is_edit %}EDITING{% else %}WORKSPACE{% endif %}
+    </span>
+    <h1 class="text-lg font-extrabold text-white tracking-tight">
+      {% if is_edit %}Modify SKU: <span class="font-mono text-amber-400">{{ edit_item.sku }}</span>{% else %}SKU Generator Studio{% endif %}
     </h1>
-    <p class="text-slate-400 text-sm mt-1">Configure SKU, stock units, cost pricing, and channel-wise selling rates.</p>
   </div>
-  <a href="{% url 'sku_inventory' %}" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-sm w-fit">
-    View All Inventory →
-  </a>
-</header>
-
-{% if is_edit %}
-<div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex items-center justify-between">
-  <div>
-    <p class="text-sm font-bold text-blue-300">Editing Record</p>
-    <p class="text-xs text-slate-400">Modifying SKU: <span class="font-mono text-white font-semibold">{{ edit_item.sku }}</span></p>
+  <div class="flex items-center gap-2">
+    {% if is_edit %}
+      <a href="{% url 'sku_generate' %}" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition">Cancel</a>
+    {% endif %}
+    <a href="{% url 'sku_inventory' %}" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+      <span>Inventory Catalog</span> →
+    </a>
   </div>
-  <a href="{% url 'sku_generate' %}" class="text-xs text-slate-400 hover:text-white bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg">Cancel Edit</a>
 </div>
-{% endif %}
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-  
-  <!-- Main Form -->
-  <form method="POST" enctype="multipart/form-data" action="{% if is_edit %}{% url 'sku_edit' edit_item.pk %}{% else %}{% url 'sku_generate' %}{% endif %}" class="lg:col-span-7 bg-slate-800/40 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-    {% csrf_token %}
+<!-- Full-Width Zero-Scroll 3-Column Grid -->
+<form method="POST" enctype="multipart/form-data" action="{% if is_edit %}{% url 'sku_edit' edit_item.pk %}{% else %}{% url 'sku_generate' %}{% endif %}" 
+      class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+  {% csrf_token %}
 
-    <!-- 1. Product Attributes -->
-    <div class="space-y-4">
-      <h2 class="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
-        <span class="w-6 h-6 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs font-bold">1</span>
-        Product Details
-      </h2>
+  <!-- Column 1: Core Product Attributes (4 Cols) -->
+  <div class="xl:col-span-4 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3.5">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+        <span class="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">1</span>
+        Product Specs
+      </span>
+      <span class="text-[10px] text-slate-500 font-mono">CAT-STY-NAM</span>
+    </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Category</label>
-          <select name="category" id="fieldCategory" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 transition">
-            <option value="BGL" {% if is_edit and edit_item.category == 'BGL' %}selected{% endif %}>BGL - Bangles / Kadas</option>
-            <option value="BRC" {% if is_edit and edit_item.category == 'BRC' %}selected{% endif %}>BRC - Bracelet</option>
-            <option value="NCK" {% if is_edit and edit_item.category == 'NCK' %}selected{% endif %}>NCK - Necklace / Choker</option>
-            <option value="EAR" {% if is_edit and edit_item.category == 'EAR' %}selected{% endif %}>EAR - Earrings</option>
-            <option value="SET" {% if is_edit and edit_item.category == 'SET' %}selected{% endif %}>SET - Complete Set / Combo</option>
-            <option value="JHK" {% if is_edit and edit_item.category == 'JHK' %}selected{% endif %}>JHK - Jhumkas</option>
-            <option value="RNG" {% if is_edit and edit_item.category == 'RNG' %}selected{% endif %}>RNG - Rings</option>
-            <option value="PAY" {% if is_edit and edit_item.category == 'PAY' %}selected{% endif %}>PAY - Anklet / Payal</option>
-            <option value="TIK" {% if is_edit and edit_item.category == 'TIK' %}selected{% endif %}>TIK - Maang Tikka</option>
-          </select>
+    <div class="grid grid-cols-2 gap-2.5">
+      <!-- Category -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Category</label>
+        <select name="category" id="fieldCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 transition">
+          <option value="NCK" {% if is_edit and edit_item.category == 'NCK' %}selected{% elif not is_edit %}selected{% endif %}>NCK - Necklace</option>
+          <option value="BGL" {% if is_edit and edit_item.category == 'BGL' %}selected{% endif %}>BGL - Bangles/Kadas</option>
+          <option value="BRC" {% if is_edit and edit_item.category == 'BRC' %}selected{% endif %}>BRC - Bracelet</option>
+          <option value="EAR" {% if is_edit and edit_item.category == 'EAR' %}selected{% endif %}>EAR - Earrings</option>
+          <option value="SET" {% if is_edit and edit_item.category == 'SET' %}selected{% endif %}>SET - Combo Set</option>
+          <option value="JHK" {% if is_edit and edit_item.category == 'JHK' %}selected{% endif %}>JHK - Jhumkas</option>
+          <option value="RNG" {% if is_edit and edit_item.category == 'RNG' %}selected{% endif %}>RNG - Rings</option>
+          <option value="PAY" {% if is_edit and edit_item.category == 'PAY' %}selected{% endif %}>PAY - Payal</option>
+          <option value="TIK" {% if is_edit and edit_item.category == 'TIK' %}selected{% endif %}>TIK - Maang Tikka</option>
+        </select>
+      </div>
+
+      <!-- Style -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Style Code</label>
+        <input type="text" name="style" id="fieldStyle" placeholder="PND" maxlength="10"
+          value="{% if is_edit %}{{ edit_item.style }}{% else %}PND{% endif %}"
+          class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono uppercase focus:outline-none focus:border-amber-500 transition">
+      </div>
+
+      <!-- Name -->
+      <div class="col-span-2">
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Design Name / Model</label>
+        <input type="text" name="name" id="fieldName" placeholder="PUFFHRT" maxlength="20"
+          value="{% if is_edit %}{{ edit_item.name }}{% else %}PUFFHRT{% endif %}"
+          class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono uppercase focus:outline-none focus:border-amber-500 transition">
+      </div>
+
+      <!-- Color -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Color Variant</label>
+        <select name="color" id="fieldColor" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 transition">
+          <option value="GLD" {% if is_edit and edit_item.color == 'GLD' %}selected{% elif not is_edit %}selected{% endif %}>GLD - Gold</option>
+          <option value="SLV" {% if is_edit and edit_item.color == 'SLV' %}selected{% endif %}>SLV - Silver</option>
+          <option value="ROSE" {% if is_edit and edit_item.color == 'ROSE' %}selected{% endif %}>ROSE - Rose Gold</option>
+          <option value="BLK" {% if is_edit and edit_item.color == 'BLK' %}selected{% endif %}>BLK - Black</option>
+          <option value="RBYGRN" {% if is_edit and edit_item.color == 'RBYGRN' %}selected{% endif %}>RBYGRN - Ruby/Green</option>
+          <option value="GRN" {% if is_edit and edit_item.color == 'GRN' %}selected{% endif %}>GRN - Green</option>
+          <option value="MRN" {% if is_edit and edit_item.color == 'MRN' %}selected{% endif %}>MRN - Maroon</option>
+          <option value="WHT" {% if is_edit and edit_item.color == 'WHT' %}selected{% endif %}>WHT - White</option>
+          <option value="MTC" {% if is_edit and edit_item.color == 'MTC' %}selected{% endif %}>MTC - Multi</option>
+        </select>
+      </div>
+
+      <!-- Size -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Size / Fit</label>
+        <select name="size" id="fieldSize" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 transition">
+          <option value="ADJ" {% if is_edit and edit_item.size == 'ADJ' %}selected{% elif not is_edit %}selected{% endif %}>ADJ - Adjustable</option>
+          <option value="16IN" {% if is_edit and edit_item.size == '16IN' %}selected{% endif %}>16IN - 16 Inch</option>
+          <option value="18IN" {% if is_edit and edit_item.size == '18IN' %}selected{% endif %}>18IN - 18 Inch</option>
+          <option value="2.4" {% if is_edit and edit_item.size == '2.4' %}selected{% endif %}>2.4 - Bangle</option>
+          <option value="2.6" {% if is_edit and edit_item.size == '2.6' %}selected{% endif %}>2.6 - Bangle</option>
+          <option value="2.8" {% if is_edit and edit_item.size == '2.8' %}selected{% endif %}>2.8 - Bangle</option>
+          <option value="07IN" {% if is_edit and edit_item.size == '07IN' %}selected{% endif %}>07IN - Bracelet</option>
+          <option value="FREE" {% if is_edit and edit_item.size == 'FREE' %}selected{% endif %}>FREE - Free Size</option>
+        </select>
+      </div>
+
+      <!-- Serial Number -->
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase">Seq #</label>
+          <button type="button" id="autoIncBtn" class="text-[10px] text-amber-400 hover:underline">Auto</button>
         </div>
+        <input type="text" name="number" id="fieldNumber" maxlength="6"
+          value="{% if is_edit %}{{ edit_item.number }}{% else %}{{ next_serial }}{% endif %}"
+          class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-amber-500 transition">
+      </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Style Code</label>
-          <input type="text" name="style" id="fieldStyle" placeholder="ADC" value="{% if is_edit %}{{ edit_item.style }}{% else %}ADC{% endif %}" maxlength="10"
-            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono uppercase focus:outline-none focus:border-amber-500 transition">
+      <!-- Stock Units -->
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Stock Units</label>
+        <input type="number" min="0" name="stock" id="fieldStock" value="{% if is_edit %}{{ edit_item.stock }}{% else %}15{% endif %}"
+          class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-amber-500 transition">
+      </div>
+    </div>
+
+    <!-- Image Upload Strip -->
+    <div class="pt-1">
+      <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1.5">Product Photo</label>
+      <div class="flex items-center gap-3 bg-slate-950 border border-slate-800 rounded-xl p-2">
+        <div class="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+          <img id="formImgPreview" src="{% if is_edit and edit_item.image %}{{ edit_item.image.url }}{% else %}https://placehold.co/100x100/0f172a/64748b?text=Img{% endif %}" class="w-full h-full object-cover">
         </div>
-
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Design Name</label>
-          <input type="text" name="name" id="fieldName" placeholder="LOVE" value="{% if is_edit %}{{ edit_item.name }}{% else %}LOVE{% endif %}" maxlength="20"
-            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white uppercase focus:outline-none focus:border-amber-500 transition">
+        <div class="flex-1 overflow-hidden">
+          <input type="file" name="image" id="fieldImage" accept="image/*" class="text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-slate-800 file:text-amber-400 cursor-pointer w-full">
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Color Variant</label>
-          <select name="color" id="fieldColor" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 transition">
-            <option value="GLD" {% if is_edit and edit_item.color == 'GLD' %}selected{% endif %}>GLD - Golden</option>
-            <option value="RBYGRN" {% if is_edit and edit_item.color == 'RBYGRN' %}selected{% endif %}>RBYGRN - Ruby & Emerald Green</option>
-            <option value="GRN" {% if is_edit and edit_item.color == 'GRN' %}selected{% endif %}>GRN - Emerald Green</option>
-            <option value="MRN" {% if is_edit and edit_item.color == 'MRN' %}selected{% endif %}>MRN - Maroon / Ruby</option>
-            <option value="ROSE" {% if is_edit and edit_item.color == 'ROSE' %}selected{% endif %}>ROSE - Rose Gold</option>
-            <option value="SLV" {% if is_edit and edit_item.color == 'SLV' %}selected{% endif %}>SLV - Silver / Rhodium</option>
-            <option value="MTC" {% if is_edit and edit_item.color == 'MTC' %}selected{% endif %}>MTC - Multi-Color</option>
-            <option value="WHT" {% if is_edit and edit_item.color == 'WHT' %}selected{% endif %}>WHT - White / Pearl</option>
-            <option value="BLK" {% if is_edit and edit_item.color == 'BLK' %}selected{% endif %}>BLK - Black</option>
-            <option value="BLU" {% if is_edit and edit_item.color == 'BLU' %}selected{% endif %}>BLU - Royal Blue</option>
-            <option value="PNK" {% if is_edit and edit_item.color == 'PNK' %}selected{% endif %}>PNK - Baby Pink</option>
-          </select>
+  <!-- Column 2: Pricing & Channels (4 Cols) -->
+  <div class="xl:col-span-4 bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3.5">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+        <span class="w-5 h-5 rounded-md bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] font-bold">2</span>
+        Pricing Engine
+      </span>
+      <span id="marginBadge" class="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Margin: 0%</span>
+    </div>
+
+    <!-- Cost & MRP Side-by-Side -->
+    <div class="grid grid-cols-2 gap-2.5">
+      <div>
+        <label class="block text-[11px] font-semibold text-rose-300 uppercase mb-1">Purchase Cost (₹)</label>
+        <div class="relative">
+          <span class="absolute left-2.5 top-1.5 text-slate-500 font-mono text-xs">₹</span>
+          <input type="number" step="0.01" min="0" name="purchase_price" id="fieldCostPrice" placeholder="0.00"
+            value="{% if is_edit %}{{ edit_item.purchase_price }}{% else %}0.00{% endif %}"
+            class="w-full bg-slate-950 border border-rose-500/40 rounded-lg pl-6 pr-2 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-rose-400 transition">
         </div>
+      </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Size / Fit</label>
-          <select name="size" id="fieldSize" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 transition">
-            <option value="2.4" {% if is_edit and edit_item.size == '2.4' %}selected{% endif %}>2.4 - Bangle Size 2.4</option>
-            <option value="2.6" {% if is_edit and edit_item.size == '2.6' %}selected{% endif %}>2.6 - Bangle Size 2.6</option>
-            <option value="2.8" {% if is_edit and edit_item.size == '2.8' %}selected{% endif %}>2.8 - Bangle Size 2.8</option>
-            <option value="2.10" {% if is_edit and edit_item.size == '2.10' %}selected{% endif %}>2.10 - Bangle Size 2.10</option>
-            <option value="ADJ" {% if is_edit and edit_item.size == 'ADJ' %}selected{% endif %}>ADJ - Adjustable Clasp/Thread</option>
-            <option value="FREE" {% if is_edit and edit_item.size == 'FREE' %}selected{% endif %}>FREE - Standard Free Size</option>
-            <option value="16IN" {% if is_edit and edit_item.size == '16IN' %}selected{% endif %}>16IN - 16 Inch Chain</option>
-            <option value="18IN" {% if is_edit and edit_item.size == '18IN' %}selected{% endif %}>18IN - 18 Inch Chain</option>
-            <option value="07IN" {% if is_edit and edit_item.size == '07IN' %}selected{% endif %}>07IN - 7 Inch Bracelet</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Stock Quantity</label>
-          <input type="number" min="0" name="stock" value="{% if is_edit %}{{ edit_item.stock }}{% else %}10{% endif %}"
-            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-500 transition">
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Sequence #</label>
-            <button type="button" id="autoIncBtn" class="text-[11px] text-amber-400 hover:text-amber-300 underline font-medium">Auto-detect</button>
-          </div>
-          <input type="text" name="number" id="fieldNumber" value="{% if is_edit %}{{ edit_item.number }}{% else %}{{ next_serial }}{% endif %}" maxlength="6"
-            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-amber-500 transition">
-        </div>
-
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Product Photo</label>
-          <div class="flex items-center gap-4 bg-slate-900 border border-slate-700 p-3 rounded-xl">
-            <div class="w-14 h-14 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
-              <img id="formImgPreview" src="{% if is_edit and edit_item.image %}{{ edit_item.image.url }}{% else %}https://placehold.co/100x100/1e293b/94a3b8?text=Image{% endif %}" class="w-full h-full object-cover">
-            </div>
-            <div class="flex-1">
-              <input type="file" name="image" id="fieldImage" accept="image/*" class="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-amber-400 hover:file:bg-slate-700 cursor-pointer">
-            </div>
-          </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-emerald-300 uppercase mb-1">Tag MRP (₹)</label>
+        <div class="relative">
+          <span class="absolute left-2.5 top-1.5 text-slate-500 font-mono text-xs">₹</span>
+          <input type="number" step="0.01" min="0" name="selling_price" id="fieldBaseMrp" placeholder="0.00"
+            value="{% if is_edit %}{{ edit_item.selling_price }}{% else %}0.00{% endif %}"
+            class="w-full bg-slate-950 border border-emerald-500/40 rounded-lg pl-6 pr-2 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-emerald-400 transition">
         </div>
       </div>
     </div>
 
-    <!-- 2. Cost & Base Selling Price -->
-    <div class="space-y-4">
-      <h2 class="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
-        <span class="w-6 h-6 rounded-md bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold">2</span>
-        Base Cost & MRP
-      </h2>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-rose-300 uppercase tracking-wider mb-2">Purchasing Price (₹)</label>
-          <div class="relative">
-            <span class="absolute left-3 top-2.5 text-slate-500 font-mono">₹</span>
-            <input type="number" step="0.01" min="0" name="purchase_price" placeholder="0.00" value="{% if is_edit %}{{ edit_item.purchase_price }}{% else %}0.00{% endif %}"
-              class="w-full bg-slate-900 border border-rose-500/40 rounded-lg pl-8 pr-3 py-2.5 text-sm text-white font-mono font-bold focus:outline-none focus:border-rose-400 transition">
-          </div>
-          <p class="text-[11px] text-slate-500 mt-1">Your unit purchase/manufacturing cost.</p>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">Base Selling Price / MRP (₹)</label>
-          <div class="relative">
-            <span class="absolute left-3 top-2.5 text-slate-500 font-mono">₹</span>
-            <input type="number" step="0.01" min="0" name="selling_price" placeholder="0.00" value="{% if is_edit %}{{ edit_item.selling_price }}{% else %}0.00{% endif %}"
-              class="w-full bg-slate-900 border border-emerald-500/40 rounded-lg pl-8 pr-3 py-2.5 text-sm text-white font-mono font-bold focus:outline-none focus:border-emerald-400 transition">
-          </div>
-          <p class="text-[11px] text-slate-500 mt-1">Standard listing MRP / tag price.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3. Multi-Platform Selling Prices -->
-    <div class="space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <h2 class="text-base font-bold text-white flex items-center gap-2">
-          <span class="w-6 h-6 rounded-md bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-bold">3</span>
-          Marketplace Platform Rates
-        </h2>
-        <span class="text-xs text-purple-400 font-semibold uppercase">{{ platforms|length }} Platforms Active</span>
+    <!-- Channel Prices (Dense Multi-Grid) -->
+    <div class="space-y-2 pt-1">
+      <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        <span>Marketplace Selling Rates</span>
+        <span class="text-[10px] text-purple-400 font-mono">{{ platforms|length }} active</span>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1">
         {% for platform in platforms %}
-          <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl">
-            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-              <span>{{ platform.name }}</span>
-              <span class="text-[10px] text-slate-500 font-normal">Selling Price</span>
-            </label>
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-2">
+            <span class="block text-[10px] font-bold text-slate-300 uppercase truncate mb-1">{{ platform.name }}</span>
             <div class="relative">
-              <span class="absolute left-3 top-2 text-slate-500 font-mono text-xs">₹</span>
-              <input type="number" step="0.01" min="0" name="platform_price_{{ platform.id }}" placeholder="Leave blank if not listed"
+              <span class="absolute left-2 top-1 text-slate-500 font-mono text-[10px]">₹</span>
+              <input type="number" step="0.01" min="0" name="platform_price_{{ platform.id }}" placeholder="0.00"
                 {% if is_edit %}
                   {% for pid, val in current_prices.items %}
                     {% if pid == platform.id %}value="{{ val }}"{% endif %}
                   {% endfor %}
                 {% endif %}
-                class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-7 pr-3 py-1.5 text-xs text-amber-300 font-mono font-semibold focus:outline-none focus:border-amber-500 transition">
+                class="w-full bg-slate-900 border border-slate-700 rounded pl-5 pr-1.5 py-1 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-500 transition">
             </div>
+          </div>
+        {% empty %}
+          <div class="col-span-2 text-center py-4 text-slate-500 text-xs bg-slate-950 rounded-lg border border-slate-800">
+            No platforms added yet.
           </div>
         {% endfor %}
       </div>
     </div>
+  </div>
 
-    <div class="pt-4 border-t border-slate-800">
-      <button type="submit" class="w-full {% if is_edit %}bg-blue-500 hover:bg-blue-400{% else %}bg-amber-500 hover:bg-amber-400{% endif %} text-slate-950 font-bold py-3.5 px-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        <span>{% if is_edit %}Update Product & Rates{% else %}Save Product & All Platform Rates{% endif %}</span>
-      </button>
-    </div>
-  </form>
-
-  <!-- Right Column: Live Preview & Platform Quick Add -->
-  <div class="lg:col-span-5 space-y-6">
+  <!-- Column 3: Live SKU Card, Segment Chips & Primary Save (4 Cols) -->
+  <div class="xl:col-span-4 space-y-3.5">
     
-    <!-- Live Preview Card -->
-    <div class="bg-gradient-to-br from-slate-800/80 to-slate-900/90 border border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-6">
-      <div>
-        <div class="flex items-center justify-between text-xs text-slate-400 mb-4">
-          <span class="uppercase tracking-wider font-semibold">Live Preview</span>
-          <span id="charCount" class="font-mono bg-slate-950 px-2 py-0.5 rounded text-slate-400">0 chars</span>
-        </div>
+    <div class="bg-gradient-to-b from-slate-800/90 to-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3.5 backdrop-blur-md">
+      <div class="flex items-center justify-between text-xs">
+        <span class="uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5 text-[11px]">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Live Compiled SKU
+        </span>
+        <span id="charCount" class="font-mono text-[10px] bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-amber-400 font-bold">0 chars</span>
+      </div>
 
-        <div class="bg-slate-950/80 border border-slate-800 p-6 rounded-xl text-center shadow-inner relative group">
-          <div id="skuOutput" class="sku-mono text-2xl sm:text-3xl font-bold tracking-wider text-amber-400 select-all break-all">
-            ---
-          </div>
-          <div id="duplicateAlert" class="hidden mt-3 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 py-1.5 px-3 rounded-md">
-            Warning: This SKU already exists in database!
-          </div>
+      <!-- Big SKU Code Display -->
+      <div class="bg-slate-950 border border-slate-800 p-3.5 rounded-xl text-center shadow-inner">
+        <div id="skuOutput" class="sku-mono text-xl sm:text-2xl font-black tracking-wider text-amber-400 select-all break-all leading-tight">
+          ---
         </div>
-
-        <div class="mt-6 space-y-2 text-xs text-slate-400">
-          <p class="font-semibold text-slate-300 uppercase tracking-wider mb-2">Segment Mapping</p>
-          <div class="grid grid-cols-2 gap-2 font-mono text-[11px]">
-            <div class="bg-slate-900/60 p-2 rounded border border-slate-800"><span class="text-slate-500">CAT:</span> <span id="mapCat" class="text-blue-300 font-bold"></span></div>
-            <div class="bg-slate-900/60 p-2 rounded border border-slate-800"><span class="text-slate-500">STY:</span> <span id="mapSty" class="text-purple-300 font-bold"></span></div>
-            <div class="bg-slate-900/60 p-2 rounded border border-slate-800"><span class="text-slate-500">NAM:</span> <span id="mapNam" class="text-emerald-300 font-bold"></span></div>
-            <div class="bg-slate-900/60 p-2 rounded border border-slate-800"><span class="text-slate-500">COL:</span> <span id="mapCol" class="text-amber-300 font-bold"></span></div>
-            <div class="bg-slate-900/60 p-2 rounded border border-slate-800"><span class="text-slate-500">SIZ:</span> <span id="mapSiz" class="text-rose-300 font-bold"></span></div>
-            <div class="bg-slate-900/60 p-2 rounded border border-slate-800"><span class="text-slate-500">NUM:</span> <span id="mapNum" class="text-indigo-300 font-bold"></span></div>
-          </div>
+        <div id="duplicateAlert" class="hidden mt-2 text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/20 py-1 px-2 rounded-lg font-semibold">
+          Warning: SKU already exists in database!
         </div>
       </div>
 
-      <button id="copySkuBtn" type="button" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 border border-slate-700">
-        <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-        <span id="copyBtnText">Copy SKU to Clipboard</span>
+      <!-- Compact 6-Chip Token Grid -->
+      <div class="grid grid-cols-3 gap-1.5 font-mono text-[10px]">
+        <div class="bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-lg text-center">
+          <span class="text-slate-500 block text-[9px]">CAT</span>
+          <span id="mapCat" class="text-blue-400 font-bold truncate block"></span>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-lg text-center">
+          <span class="text-slate-500 block text-[9px]">STY</span>
+          <span id="mapSty" class="text-purple-400 font-bold truncate block"></span>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-lg text-center">
+          <span class="text-slate-500 block text-[9px]">NAM</span>
+          <span id="mapNam" class="text-emerald-400 font-bold truncate block"></span>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-lg text-center">
+          <span class="text-slate-500 block text-[9px]">COL</span>
+          <span id="mapCol" class="text-amber-300 font-bold truncate block"></span>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-lg text-center">
+          <span class="text-slate-500 block text-[9px]">SIZ</span>
+          <span id="mapSiz" class="text-rose-400 font-bold truncate block"></span>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-lg text-center">
+          <span class="text-slate-500 block text-[9px]">NUM</span>
+          <span id="mapNum" class="text-indigo-400 font-bold truncate block"></span>
+        </div>
+      </div>
+
+      <!-- Copy SKU Button -->
+      <button id="copySkuBtn" type="button" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-700 text-xs">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+        <span id="copyBtnText">Copy Compiled SKU</span>
       </button>
-    </div>
 
-    <!-- Quick Add New Marketplace Platform Box (Zero-Code Extensibility) -->
-    <div class="bg-slate-800/40 border border-slate-800 rounded-2xl p-5 space-y-3">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          Add New Marketplace Platform
-        </h3>
-        <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">No Code Needed</span>
-      </div>
-      <p class="text-xs text-slate-400">Future-proof: Type any new marketplace (e.g., Myntra, Nykaa, Ajio, TataCLiQ). It will instantly appear as a pricing field.</p>
-      
-      <form method="POST" action="{% url 'add_platform' %}" class="flex gap-2 pt-1">
-        {% csrf_token %}
-        <input type="text" name="platform_name" required placeholder="e.g., Myntra" 
-          class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition">
-        <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-2 rounded-lg text-xs transition">
-          + Add Platform
-        </button>
-      </form>
+      <!-- Primary Save / Submit Button -->
+      <button type="submit" class="w-full {% if is_edit %}bg-blue-500 hover:bg-blue-400 shadow-blue-500/25{% else %}bg-amber-500 hover:bg-amber-400 shadow-amber-500/25{% endif %} text-slate-950 font-black py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg text-xs uppercase tracking-wider">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+        <span>{% if is_edit %}Update Database Record{% else %}Save & Store to Catalog{% endif %}</span>
+      </button>
     </div>
 
   </div>
 
+</form>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 bg-amber-500 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow-2xl text-xs uppercase tracking-wider transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50 flex items-center gap-2">
+  <span id="toastMsg">SKU copied!</span>
 </div>
 {% endblock %}
 
@@ -279,6 +286,10 @@
   const fieldImage = document.getElementById('fieldImage');
   const formImgPreview = document.getElementById('formImgPreview');
 
+  const fieldCostPrice = document.getElementById('fieldCostPrice');
+  const fieldBaseMrp = document.getElementById('fieldBaseMrp');
+  const marginBadge = document.getElementById('marginBadge');
+
   const skuOutput = document.getElementById('skuOutput');
   const charCount = document.getElementById('charCount');
   const duplicateAlert = document.getElementById('duplicateAlert');
@@ -290,6 +301,11 @@
   const mapCol = document.getElementById('mapCol');
   const mapSiz = document.getElementById('mapSiz');
   const mapNum = document.getElementById('mapNum');
+
+  const copySkuBtn = document.getElementById('copySkuBtn');
+  const copyBtnText = document.getElementById('copyBtnText');
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toastMsg');
 
   function sanitizeSlug(val) {
     return (val || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -324,23 +340,40 @@
     if (isDuplicate) duplicateAlert.classList.remove('hidden');
     else duplicateAlert.classList.add('hidden');
 
+    calculateMargin();
     return fullSKU;
   }
 
-  fieldImage.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(evt) { formImgPreview.src = evt.target.result; };
-      reader.readAsDataURL(file);
-    }
-  });
+  function calculateMargin() {
+    const cost = parseFloat(fieldCostPrice.value) || 0;
+    const mrp = parseFloat(fieldBaseMrp.value) || 0;
 
-  document.getElementById('copySkuBtn').addEventListener('click', () => {
+    if (cost > 0 && mrp > 0) {
+      const margin = (((mrp - cost) / mrp) * 100).toFixed(1);
+      marginBadge.innerText = `Margin: ${margin}%`;
+      if (margin >= 40) {
+        marginBadge.className = 'text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      } else if (margin > 0) {
+        marginBadge.className = 'text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30';
+      } else {
+        marginBadge.className = 'text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30';
+      }
+    } else {
+      marginBadge.innerText = 'Margin: 0%';
+      marginBadge.className = 'text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400';
+    }
+  }
+
+  copySkuBtn.addEventListener('click', () => {
     const current = computeSKU();
     navigator.clipboard.writeText(current).then(() => {
-      document.getElementById('copyBtnText').innerText = "Copied!";
-      setTimeout(() => { document.getElementById('copyBtnText').innerText = "Copy SKU to Clipboard"; }, 1500);
+      copyBtnText.innerText = "Copied!";
+      toastMsg.innerText = `Copied: ${current}`;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        copyBtnText.innerText = "Copy Compiled SKU";
+      }, 1500);
     });
   });
 
@@ -357,6 +390,15 @@
     computeSKU();
   });
 
+  fieldImage.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(evt) { formImgPreview.src = evt.target.result; };
+      reader.readAsDataURL(file);
+    }
+  });
+
   [fieldCategory, fieldColor, fieldSize, fieldNumber].forEach(el => {
     el.addEventListener('input', computeSKU);
     el.addEventListener('change', computeSKU);
@@ -367,6 +409,10 @@
       e.target.value = sanitizeSlug(e.target.value);
       computeSKU();
     });
+  });
+
+  [fieldCostPrice, fieldBaseMrp].forEach(el => {
+    el.addEventListener('input', calculateMargin);
   });
 
   computeSKU();

@@ -388,3 +388,11 @@ def dispatch_logs(request):
         'total_dispatches': logs.count(),
         'active_page': 'dispatch_logs',
     })
+
+# sku_manager/views.py me add karein
+
+def sku_scanner(request):
+    """Live In-Browser Camera Scanner"""
+    return render(request, 'sku_manager/scanner.html', {
+        'active_page': 'scanner'
+    })

@@ -9,9 +9,13 @@ urlpatterns = [
     path('delete/<int:pk>/', views.sku_delete, name='sku_delete'),
     path('toggle-listed/<int:pk>/', views.toggle_listed, name='sku_toggle_listed'),
     path('stock/<int:pk>/<str:action>/', views.adjust_stock, name='sku_adjust_stock'),
-    path('platform/add/', views.add_platform, name='add_platform'),  # <-- New URL
-    path('export-csv/', views.export_csv, name='sku_export_csv'),
-
     path('platforms/', views.platform_manager, name='platform_manager'),
     path('platforms/delete/<int:pk>/', views.platform_delete, name='platform_delete'),
+    path('export-csv/', views.export_csv, name='sku_export_csv'),
+
+    # QR & Dispatch System
+    path('qr/download/<int:pk>/', views.sku_qr_download, name='sku_qr_download'),
+    path('print-label/<int:pk>/', views.sku_print_label, name='sku_print_label'),
+    path('dispatch/<str:sku>/', views.scan_dispatch, name='scan_dispatch'),
+    path('dispatch-logs/', views.dispatch_logs, name='dispatch_logs'),
 ]

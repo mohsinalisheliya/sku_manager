@@ -276,3 +276,115 @@ def platform_delete(request, pk):
     platform.delete()
     messages.info(request, f"Marketplace '{name}' and its linked pricing have been removed.")
     return redirect('platform_manager')
+
+
+# sku_manager/views.py me imports ke sath update karein:
+import io
+import qrcode
+from django.urls import reverse
+from django.utils import timezone
+from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog
+
+# 1. QR Code Image Download View
+def sku_qr_download(request, pk):
+    item = get_object_or_404(JewelrySKU, pk=pk)
+    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=2,
+    )
+    qr.add_data(dispatch_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    response = HttpResponse(buffer.getvalue(), content_type="image/png")
+    response['Content-Disposition'] = f'attachment; filename="QR_{item.sku}.png"'
+    return response
+
+# 2. Printable Label Tag View (Thermal sticker / Standard print ready)
+def sku_print_label(request, pk):
+    item = get_object_or_404(JewelrySKU, pk=pk)
+    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
+
+    qr = qrcode.QRCode(version=1, box_size=6, border=1)
+    qr.add_data(dispatch_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    import base64
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+    return render(request, 'sku_manager/label_print.html', {
+        'item': item,
+        'qr_base64': qr_base64,
+        'dispatch_url': dispatch_url,
+    })
+
+# 3. Mobile Dispatch View (Opens on QR Scan)
+def scan_dispatch(request, sku):
+    item = get_object_or_404(JewelrySKU, sku=sku)
+    platforms = get_or_seed_platforms()
+    price_map = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
+
+    if request.method == 'POST':
+        platform_id = request.POST.get('platform_id')
+        platform = get_object_or_404(Platform, pk=platform_id)
+        
+        if item.stock <= 0:
+            messages.error(request, f"Cannot dispatch: '{item.sku}' is currently OUT OF STOCK!")
+            return redirect('scan_dispatch', sku=item.sku)
+
+        # Minus stock by 1
+        item.stock -= 1
+        item.save(update_fields=['stock', 'updated_at'])
+
+        sold_price = price_map.get(platform.id, item.selling_price)
+
+        # Record Audit Log
+        DispatchLog.objects.create(
+            sku=item,
+            platform=platform,
+            platform_name=platform.name,
+            quantity=1,
+            sold_price=sold_price,
+            stock_after=item.stock
+        )
+
+        messages.success(request, f"✓ Dispatched 1 unit for {platform.name}! Remaining Stock: {item.stock}")
+        return redirect('scan_dispatch', sku=item.sku)
+
+    # Attach specific price to each platform object for display
+    platform_data = []
+    for p in platforms:
+        platform_data.append({
+            'platform': p,
+            'price': price_map.get(p.id, item.selling_price)
+        })
+
+    recent_logs = item.dispatch_logs.all()[:5]
+
+    return render(request, 'sku_manager/dispatch.html', {
+        'item': item,
+        'platforms': platform_data,
+        'recent_logs': recent_logs,
+    })
+
+# 4. Dispatch History & Audit Log View
+def dispatch_logs(request):
+    logs = DispatchLog.objects.select_related('sku').all()
+    paginator = Paginator(logs, 20)
+    page = request.GET.get('page')
+    page_logs = paginator.get_page(page)
+
+    return render(request, 'sku_manager/dispatch_logs.html', {
+        'logs': page_logs,
+        'total_dispatches': logs.count(),
+        'active_page': 'dispatch_logs',
+    })

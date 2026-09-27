@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tag: {{ item.sku }}</title>
+  <style>
+    @page {
+      size: 50mm 30mm;
+      margin: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 3mm;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #fff;
+      color: #000;
+    }
+    .label-box {
+      width: 44mm;
+      height: 24mm;
+      border: 1px dashed #bbb;
+      box-sizing: border-box;
+      padding: 1.5mm;
+      display: flex;
+      gap: 2mm;
+      align-items: center;
+    }
+    .qr-img {
+      width: 20mm;
+      height: 20mm;
+      flex-shrink: 0;
+    }
+    .info {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+    }
+    .brand {
+      font-size: 7pt;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+    .sku {
+      font-family: monospace;
+      font-size: 5.5pt;
+      font-weight: 700;
+      word-break: break-all;
+      line-height: 1.1;
+    }
+    .meta {
+      font-size: 5pt;
+      color: #333;
+    }
+    .price {
+      font-size: 7.5pt;
+      font-weight: 900;
+      font-family: monospace;
+    }
+    .no-print-bar {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      padding: 6px 12px;
+      background: #0f172a;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 12px;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+    }
+    @media print {
+      .label-box { border: none; }
+      .no-print-bar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print-bar">
+    <button class="btn" onclick="window.print()">🖨️ Print Label</button>
+    <a class="btn" href="{% url 'sku_qr_download' item.pk %}">⬇️ Download QR PNG</a>
+    <a class="btn" href="{% url 'sku_inventory' %}" style="background:#475569;">Back</a>
+  </div>
+
+  <div class="label-box">
+    <img src="data:image/png;base64,{{ qr_base64 }}" class="qr-img" alt="QR">
+    <div class="info">
+      <div class="brand">VELFIRA JEWELS</div>
+      <div class="sku">{{ item.sku }}</div>
+      <div class="meta">{{ item.color }} • {{ item.size }}</div>
+      <div class="price">MRP: ₹{{ item.selling_price }}</div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-trigger print dialog if opened in a dedicated print window
+    if (window.location.search.includes('autoprint=true')) {
+      window.print();
+    }
+  </script>
+</body>
+</html>

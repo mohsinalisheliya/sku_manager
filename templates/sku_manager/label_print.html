@@ -98,7 +98,9 @@
     <div class="info">
       <div class="brand">VELFIRA JEWELS</div>
       <div class="sku">{{ item.sku }}</div>
-      <div class="meta">{{ item.color }} • {{ item.size }}</div>
+      <div class="meta" style="font-weight: 800; color: #000;">
+        📍 {{ item.storage_box.name|default:"No Box" }} | {{ item.section_name }}
+      </div>
       <div class="price">MRP: ₹{{ item.selling_price }}</div>
     </div>
   </div>

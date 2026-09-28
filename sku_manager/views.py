@@ -12,12 +12,6 @@ from django.urls import reverse
 from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox
 
 DEFAULT_PLATFORMS = ['Flipkart', 'Amazon', 'Meesho', 'Website']
-DEFAULT_BOXES = [
-    ('Box 1', 'blue'),
-    ('Box 2', 'amber'),
-    ('Box 3', 'emerald'),
-    ('Box 4', 'purple'),
-]
 
 def get_or_seed_platforms():
     if not Platform.objects.exists():
@@ -25,10 +19,8 @@ def get_or_seed_platforms():
             Platform.objects.get_or_create(name=name)
     return Platform.objects.all().order_by('id')
 
-def get_or_seed_boxes():
-    if not StorageBox.objects.exists():
-        for name, color in DEFAULT_BOXES:
-            StorageBox.objects.get_or_create(name=name, defaults={'color_tag': color})
+def get_all_boxes():
+    """Fetch only user-created storage boxes without auto-seeding defaults."""
     return StorageBox.objects.all().order_by('name')
 
 def get_next_serial():
@@ -42,8 +34,6 @@ def get_next_serial():
 
 # 1. Box Management Page
 def box_manager(request):
-    get_or_seed_boxes()
-
     if request.method == 'POST':
         name = request.POST.get('box_name', '').strip()
         color_tag = request.POST.get('color_tag', 'amber').strip()
@@ -78,7 +68,7 @@ def box_delete(request, pk):
 # 2. SKU Generator
 def sku_generate(request):
     platforms = get_or_seed_platforms()
-    boxes = get_or_seed_boxes()
+    boxes = get_all_boxes()
 
     if request.method == 'POST':
         category = request.POST.get('category', '').strip()
@@ -87,23 +77,23 @@ def sku_generate(request):
         color = request.POST.get('color', '').strip()
         size = request.POST.get('size', '').strip()
         number = request.POST.get('number', '').strip()
-        stock = request.POST.get('stock', '0').strip()
-        purchase_price = request.POST.get('purchase_price', '0').strip()
-        selling_price = request.POST.get('selling_price', '0').strip()
-        box_id = request.POST.get('storage_box')
-        section_name = request.POST.get('section_name', 'Section A').strip()
+        stock = request.POST.get('stock', '').strip()
+        purchase_price = request.POST.get('purchase_price', '').strip()
+        selling_price = request.POST.get('selling_price', '').strip()
+        box_id = request.POST.get('storage_box', '').strip()
+        section_name = request.POST.get('section_name', '').strip()
         image = request.FILES.get('image')
 
         storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
 
         try:
             item = JewelrySKU(
-                category=category,
-                style=style,
-                name=name,
-                color=color,
-                size=size,
-                number=number,
+                category=category or 'UNC',
+                style=style or 'STD',
+                name=name or 'ITEM',
+                color=color or 'GLD',
+                size=size or 'FREE',
+                number=number or '001',
                 storage_box=storage_box,
                 section_name=section_name,
                 stock=int(stock) if stock.isdigit() else 0,
@@ -140,7 +130,7 @@ def sku_inventory(request):
     filter_status = request.GET.get('status', '').strip()
     filter_box = request.GET.get('box', '').strip()
     platforms = get_or_seed_platforms()
-    boxes = get_or_seed_boxes()
+    boxes = get_all_boxes()
     
     sku_list = JewelrySKU.objects.select_related('storage_box').prefetch_related('platform_prices__platform').all()
 
@@ -180,7 +170,7 @@ def sku_inventory(request):
 def sku_edit(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
     platforms = get_or_seed_platforms()
-    boxes = get_or_seed_boxes()
+    boxes = get_all_boxes()
 
     if request.method == 'POST':
         item.category = request.POST.get('category', '').strip()

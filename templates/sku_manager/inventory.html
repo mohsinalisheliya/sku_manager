@@ -33,6 +33,18 @@
     <a href="{% url 'sku_inventory' %}?status=out_of_stock" class="px-3 py-1.5 rounded-lg font-semibold transition {% if filter_status == 'out_of_stock' %}bg-rose-500 text-white{% else %}bg-slate-900 text-slate-400 hover:text-white border border-slate-800{% endif %}">
       Out of Stock (0)
     </a>
+    <div class="flex items-center gap-1.5 text-xs flex-wrap">
+      <span class="text-[11px] text-slate-500 font-bold uppercase mr-1">Filter Box:</span>
+      {% for b in boxes %}
+        <a href="{% url 'sku_inventory' %}?box={{ b.id }}"
+           class="px-2 py-0.5 rounded-lg text-xs font-bold transition {% if filter_box == b.id|stringformat:'s' %}bg-amber-500 text-slate-950{% else %}bg-slate-900 text-slate-300 border border-slate-800 hover:text-white{% endif %}">
+          {{ b.name }}
+        </a>
+      {% endfor %}
+      {% if filter_box %}
+        <a href="{% url 'sku_inventory' %}" class="text-[11px] text-rose-400 hover:underline px-1">Clear</a>
+      {% endif %}
+    </div>
   </div>
 
   <form method="GET" action="{% url 'sku_inventory' %}" class="flex items-center gap-2">
@@ -59,6 +71,7 @@
           <th class="py-3.5 px-4 font-semibold">SKU ID & Name</th>
           <th class="py-3.5 px-4 font-semibold">Cost / MRP</th>
           <th class="py-3.5 px-4 font-semibold">Platform Selling Prices</th>
+          <th class="py-3 px-3 text-center">Physical Location</th>
           <th class="py-3.5 px-3 font-semibold text-center">Stock</th>
           <th class="py-3.5 px-3 text-right font-semibold">Actions</th>
         </tr>
@@ -115,6 +128,24 @@
               </div>
             </td>
 
+            <!-- Physical Location -->
+            <td class="py-3 px-3 text-center whitespace-nowrap">
+              {% if item.storage_box %}
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border
+                  {% if item.storage_box.color_tag == 'blue' %}bg-blue-500/10 text-blue-300 border-blue-500/30
+                  {% elif item.storage_box.color_tag == 'emerald' %}bg-emerald-500/10 text-emerald-300 border-emerald-500/30
+                  {% elif item.storage_box.color_tag == 'purple' %}bg-purple-500/10 text-purple-300 border-purple-500/30
+                  {% elif item.storage_box.color_tag == 'rose' %}bg-rose-500/10 text-rose-300 border-rose-500/30
+                  {% else %}bg-amber-500/10 text-amber-300 border-amber-500/30{% endif %}">
+                  <span>📍 {{ item.storage_box.name }}</span>
+                  <span class="text-slate-500">•</span>
+                  <span class="text-white font-mono">{{ item.section_name }}</span>
+                </div>
+              {% else %}
+                <span class="text-[11px] text-slate-500 italic">Unassigned</span>
+              {% endif %}
+            </td>
+
             <!-- Stock Adjuster -->
             <td class="py-3 px-3 text-center whitespace-nowrap">
               <div class="inline-flex items-center gap-1 bg-slate-950/70 border border-slate-800 rounded-lg p-1">
@@ -142,7 +173,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="7" class="text-center py-12 text-slate-500 text-sm">
+            <td colspan="8" class="text-center py-12 text-slate-500 text-sm">
               No inventory records found.
             </td>
           </tr>

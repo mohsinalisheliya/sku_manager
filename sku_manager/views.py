@@ -2,6 +2,7 @@
 import csv
 import io
 import base64
+import re
 import qrcode
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
@@ -12,6 +13,19 @@ from django.urls import reverse
 from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox
 
 DEFAULT_PLATFORMS = ['Flipkart', 'Amazon', 'Meesho', 'Website']
+PRESET_COLORS = [
+    '#EF4444', '#DC2626', '#B91C1C', '#991B1B',
+    '#F43F5E', '#E11D48', '#BE123C', '#EC4899', '#DB2777', '#BE185D',
+    '#FB923C', '#F97316', '#EA580C', '#C2410C',
+    '#FBBF24', '#F59E0B', '#D97706', '#B45309',
+    '#FDE047', '#EAB308', '#CA8A04', '#A16207',
+    '#A3E635', '#84CC16', '#65A30D', '#4D7C0F',
+    '#4ADE80', '#22C55E', '#16A34A', '#15803D', '#10B981', '#059669', '#047857',
+    '#2DD4BF', '#14B8A6', '#0D9488', '#0F766E', '#06B6D4', '#0891B2', '#0E7490',
+    '#38BDF8', '#0EA5E9', '#0284C7', '#3B82F6', '#2563EB', '#1D4ED8',
+    '#818CF8', '#6366F1', '#4F46E5', '#8B5CF6', '#7C3AED', '#6D28D9',
+    '#C084FC', '#A855F7', '#9333EA', '#E879F9', '#D946EF', '#C026D3',
+]
 
 def get_or_seed_platforms():
     if not Platform.objects.exists():
@@ -34,27 +48,46 @@ def get_next_serial():
 
 # 1. Box Management Page
 def box_manager(request):
+    existing_boxes = StorageBox.objects.annotate(total_skus=Count('skus')).order_by('name')
+    used_colors_map = {box.color_tag.upper(): box.name for box in existing_boxes if box.color_tag}
+
     if request.method == 'POST':
         name = request.POST.get('box_name', '').strip()
-        color_tag = request.POST.get('color_tag', 'amber').strip()
+        color_tag = request.POST.get('color_tag', '').strip().upper()
         description = request.POST.get('description', '').strip()
 
-        if name:
-            box, created = StorageBox.objects.get_or_create(
-                name=name,
-                defaults={'color_tag': color_tag, 'description': description}
-            )
-            if created:
-                messages.success(request, f"New storage box '{name}' added successfully!")
-            else:
-                messages.info(request, f"Storage box '{name}' already exists.")
-            return redirect('box_manager')
-        else:
+        if not name:
             messages.error(request, "Box name cannot be empty.")
+            return redirect('box_manager')
 
-    boxes = StorageBox.objects.annotate(total_skus=Count('skus')).order_by('name')
+        if StorageBox.objects.filter(name__iexact=name).exists():
+            messages.error(request, f"Error: A storage box named '{name}' already exists!")
+            return redirect('box_manager')
+
+        if color_tag and not color_tag.startswith('#'):
+            color_tag = f'#{color_tag}'
+
+        if color_tag and not re.fullmatch(r'#[0-9A-F]{6}', color_tag):
+            messages.error(request, 'Color must be a valid HEX value such as #E11D48.')
+            return redirect('box_manager')
+
+        if color_tag in used_colors_map:
+            messages.error(request, f"Error: Color {color_tag} is already assigned to '{used_colors_map[color_tag]}'!")
+            return redirect('box_manager')
+
+        color_tag = color_tag or '#F59E0B'
+        if color_tag in used_colors_map:
+            messages.error(request, f"Error: Color {color_tag} is already assigned to '{used_colors_map[color_tag]}'!")
+            return redirect('box_manager')
+
+        StorageBox.objects.create(name=name, color_tag=color_tag, description=description)
+        messages.success(request, f"Storage box '{name}' with tag {color_tag} successfully created!")
+        return redirect('box_manager')
+
     return render(request, 'sku_manager/boxes.html', {
-        'boxes': boxes,
+        'boxes': existing_boxes,
+        'preset_colors': PRESET_COLORS,
+        'used_colors_map': used_colors_map,
         'active_page': 'boxes',
     })
 

@@ -1,20 +1,35 @@
 # sku_manager/views.py
 import csv
+import io
+import base64
+import qrcode
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from .models import JewelrySKU, Platform, PlatformPrice
+from django.urls import reverse
+from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox
 
 DEFAULT_PLATFORMS = ['Flipkart', 'Amazon', 'Meesho', 'Website']
+DEFAULT_BOXES = [
+    ('Box 1', 'blue'),
+    ('Box 2', 'amber'),
+    ('Box 3', 'emerald'),
+    ('Box 4', 'purple'),
+]
 
 def get_or_seed_platforms():
-    # Pehli baar run hone par default platforms auto-create honge
     if not Platform.objects.exists():
         for name in DEFAULT_PLATFORMS:
             Platform.objects.get_or_create(name=name)
     return Platform.objects.all().order_by('id')
+
+def get_or_seed_boxes():
+    if not StorageBox.objects.exists():
+        for name, color in DEFAULT_BOXES:
+            StorageBox.objects.get_or_create(name=name, defaults={'color_tag': color})
+    return StorageBox.objects.all().order_by('name')
 
 def get_next_serial():
     latest = JewelrySKU.objects.order_by('-id').first()
@@ -25,8 +40,45 @@ def get_next_serial():
     except (ValueError, TypeError):
         return '001'
 
+# 1. Box Management Page
+def box_manager(request):
+    get_or_seed_boxes()
+
+    if request.method == 'POST':
+        name = request.POST.get('box_name', '').strip()
+        color_tag = request.POST.get('color_tag', 'amber').strip()
+        description = request.POST.get('description', '').strip()
+
+        if name:
+            box, created = StorageBox.objects.get_or_create(
+                name=name,
+                defaults={'color_tag': color_tag, 'description': description}
+            )
+            if created:
+                messages.success(request, f"New storage box '{name}' added successfully!")
+            else:
+                messages.info(request, f"Storage box '{name}' already exists.")
+            return redirect('box_manager')
+        else:
+            messages.error(request, "Box name cannot be empty.")
+
+    boxes = StorageBox.objects.annotate(total_skus=Count('skus')).order_by('name')
+    return render(request, 'sku_manager/boxes.html', {
+        'boxes': boxes,
+        'active_page': 'boxes',
+    })
+
+def box_delete(request, pk):
+    box = get_object_or_404(StorageBox, pk=pk)
+    name = box.name
+    box.delete()
+    messages.info(request, f"Storage box '{name}' deleted. Associated products are now unassigned.")
+    return redirect('box_manager')
+
+# 2. SKU Generator
 def sku_generate(request):
     platforms = get_or_seed_platforms()
+    boxes = get_or_seed_boxes()
 
     if request.method == 'POST':
         category = request.POST.get('category', '').strip()
@@ -38,7 +90,11 @@ def sku_generate(request):
         stock = request.POST.get('stock', '0').strip()
         purchase_price = request.POST.get('purchase_price', '0').strip()
         selling_price = request.POST.get('selling_price', '0').strip()
+        box_id = request.POST.get('storage_box')
+        section_name = request.POST.get('section_name', 'Section A').strip()
         image = request.FILES.get('image')
+
+        storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
 
         try:
             item = JewelrySKU(
@@ -48,6 +104,8 @@ def sku_generate(request):
                 color=color,
                 size=size,
                 number=number,
+                storage_box=storage_box,
+                section_name=section_name,
                 stock=int(stock) if stock.isdigit() else 0,
                 purchase_price=float(purchase_price) if purchase_price else 0.0,
                 selling_price=float(selling_price) if selling_price else 0.0,
@@ -55,17 +113,13 @@ def sku_generate(request):
             )
             item.save()
 
-            # Dynamic Platform Prices Save
             for p in platforms:
                 p_val = request.POST.get(f'platform_price_{p.id}', '').strip()
                 if p_val:
-                    PlatformPrice.objects.create(
-                        sku=item,
-                        platform=p,
-                        price=float(p_val)
-                    )
+                    PlatformPrice.objects.create(sku=item, platform=p, price=float(p_val))
 
-            messages.success(request, f"SKU '{item.sku}' with prices successfully saved!")
+            box_label = storage_box.name if storage_box else "No Box"
+            messages.success(request, f"SKU '{item.sku}' saved in {box_label} ({item.section_name})!")
             return redirect('sku_inventory')
         except Exception as e:
             messages.error(request, f"Error saving SKU: {str(e)}")
@@ -76,23 +130,30 @@ def sku_generate(request):
         'next_serial': get_next_serial(),
         'existing_skus': existing_skus,
         'platforms': platforms,
+        'boxes': boxes,
         'active_page': 'generator',
     })
 
+# 3. Inventory View
 def sku_inventory(request):
     search_query = request.GET.get('q', '').strip()
     filter_status = request.GET.get('status', '').strip()
+    filter_box = request.GET.get('box', '').strip()
     platforms = get_or_seed_platforms()
+    boxes = get_or_seed_boxes()
     
-    sku_list = JewelrySKU.objects.prefetch_related('platform_prices__platform').all()
+    sku_list = JewelrySKU.objects.select_related('storage_box').prefetch_related('platform_prices__platform').all()
 
     if search_query:
         sku_list = sku_list.filter(
             Q(sku__icontains=search_query) |
             Q(name__icontains=search_query) |
-            Q(style__icontains=search_query) |
-            Q(category__icontains=search_query)
+            Q(storage_box__name__icontains=search_query) |
+            Q(section_name__icontains=search_query)
         )
+
+    if filter_box:
+        sku_list = sku_list.filter(storage_box__id=filter_box)
 
     if filter_status == 'listed':
         sku_list = sku_list.filter(is_listed=True)
@@ -102,27 +163,24 @@ def sku_inventory(request):
         sku_list = sku_list.filter(stock=0)
 
     paginator = Paginator(sku_list, 10)
-    page = request.GET.get('page')
-
-    try:
-        skus = paginator.page(page)
-    except PageNotAnInteger:
-        skus = paginator.page(1)
-    except EmptyPage:
-        skus = paginator.page(paginator.num_pages)
+    skus = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'sku_manager/inventory.html', {
         'skus': skus,
         'platforms': platforms,
+        'boxes': boxes,
         'search_query': search_query,
         'filter_status': filter_status,
+        'filter_box': filter_box,
         'total_count': sku_list.count(),
         'active_page': 'inventory',
     })
 
+# 4. SKU Edit
 def sku_edit(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
     platforms = get_or_seed_platforms()
+    boxes = get_or_seed_boxes()
 
     if request.method == 'POST':
         item.category = request.POST.get('category', '').strip()
@@ -132,6 +190,10 @@ def sku_edit(request, pk):
         item.size = request.POST.get('size', '').strip()
         item.number = request.POST.get('number', '').strip()
         
+        box_id = request.POST.get('storage_box')
+        item.storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
+        item.section_name = request.POST.get('section_name', 'Section A').strip()
+
         stock_val = request.POST.get('stock', '0').strip()
         item.stock = int(stock_val) if stock_val.isdigit() else 0
 
@@ -145,25 +207,18 @@ def sku_edit(request, pk):
 
         try:
             item.save()
-
-            # Update or create platform prices
             for p in platforms:
                 p_val = request.POST.get(f'platform_price_{p.id}', '').strip()
                 if p_val:
-                    PlatformPrice.objects.update_or_create(
-                        sku=item,
-                        platform=p,
-                        defaults={'price': float(p_val)}
-                    )
+                    PlatformPrice.objects.update_or_create(sku=item, platform=p, defaults={'price': float(p_val)})
                 else:
                     PlatformPrice.objects.filter(sku=item, platform=p).delete()
 
-            messages.success(request, f"SKU updated to '{item.sku}'!")
+            messages.success(request, f"Updated '{item.sku}'!")
             return redirect('sku_inventory')
         except Exception as e:
             messages.error(request, f"Error updating SKU: {str(e)}")
 
-    # Map existing prices for UI input values
     current_prices = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
     existing_skus = list(JewelrySKU.objects.exclude(pk=pk).values_list('sku', flat=True))
 
@@ -171,27 +226,79 @@ def sku_edit(request, pk):
         'is_edit': True,
         'edit_item': item,
         'platforms': platforms,
+        'boxes': boxes,
         'current_prices': current_prices,
         'existing_skus': existing_skus,
         'active_page': 'generator',
     })
 
-def add_platform(request):
-    """Bina code badle naya platform UI se add karne ke liye"""
+# 5. Scan Dispatch View
+def scan_dispatch(request, sku):
+    item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), sku=sku)
+    platforms = get_or_seed_platforms()
+    price_map = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
+
     if request.method == 'POST':
-        name = request.POST.get('platform_name', '').strip()
-        if name:
-            Platform.objects.get_or_create(name=name)
-            messages.success(request, f"Platform '{name}' added successfully!")
-        else:
-            messages.error(request, "Platform name cannot be empty.")
-    return redirect(request.META.get('HTTP_REFERER', 'sku_generate'))
+        platform_id = request.POST.get('platform_id')
+        platform = get_object_or_404(Platform, pk=platform_id)
+        
+        if item.stock <= 0:
+            messages.error(request, f"Out of stock: Cannot dispatch '{item.sku}'!")
+            return redirect('scan_dispatch', sku=item.sku)
+
+        item.stock -= 1
+        item.save(update_fields=['stock', 'updated_at'])
+
+        sold_price = price_map.get(platform.id, item.selling_price)
+        DispatchLog.objects.create(
+            sku=item,
+            platform=platform,
+            platform_name=platform.name,
+            quantity=1,
+            sold_price=sold_price,
+            stock_after=item.stock
+        )
+
+        messages.success(request, f"✓ Dispatched 1 unit for {platform.name}! Stock left: {item.stock}")
+        return redirect('scan_dispatch', sku=item.sku)
+
+    platform_data = [{'platform': p, 'price': price_map.get(p.id, item.selling_price)} for p in platforms]
+    recent_logs = item.dispatch_logs.all()[:5]
+
+    return render(request, 'sku_manager/dispatch.html', {
+        'item': item,
+        'platforms': platform_data,
+        'recent_logs': recent_logs,
+    })
+
+# 6. Label Printing View
+def sku_print_label(request, pk):
+    item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
+    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
+
+    qr = qrcode.QRCode(version=1, box_size=6, border=1)
+    qr.add_data(dispatch_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+    return render(request, 'sku_manager/label_print.html', {
+        'item': item,
+        'qr_base64': qr_base64,
+        'dispatch_url': dispatch_url,
+    })
+
+# Standard actions
+def sku_scanner(request):
+    return render(request, 'sku_manager/scanner.html', {'active_page': 'scanner'})
 
 def sku_delete(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
-    sku_val = item.sku
     item.delete()
-    messages.info(request, f"SKU '{sku_val}' deleted.")
+    messages.info(request, "SKU deleted.")
     return redirect('sku_inventory')
 
 def toggle_listed(request, pk):
@@ -209,190 +316,64 @@ def adjust_stock(request, pk, action):
     item.save(update_fields=['stock', 'updated_at'])
     return redirect(request.META.get('HTTP_REFERER', 'sku_inventory'))
 
-def export_csv(request):
-    platforms = Platform.objects.all().order_by('id')
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="jewelry_inventory.csv"'
-
-    writer = csv.writer(response)
-    
-    # Dynamic Headers with all platforms
-    headers = ['SKU', 'Category', 'Style', 'Name', 'Color', 'Size', 'Stock', 'Purchase Price (Rs)', 'Base Sell Price (Rs)']
-    for p in platforms:
-        headers.append(f"{p.name} Price (Rs)")
-    headers.extend(['Listed Status', 'Created At'])
-    writer.writerow(headers)
-
-    for obj in JewelrySKU.objects.prefetch_related('platform_prices__platform').all():
-        price_map = {pp.platform_id: pp.price for pp in obj.platform_prices.all()}
-        row = [
-            obj.sku, obj.category, obj.style, obj.name,
-            obj.color, obj.size, obj.stock,
-            obj.purchase_price, obj.selling_price
-        ]
-        for p in platforms:
-            row.append(price_map.get(p.id, ''))
-        row.extend([
-            'Listed' if obj.is_listed else 'Unlisted',
-            obj.created_at.strftime("%Y-%m-%d %H:%M")
-        ])
-        writer.writerow(row)
-
-    return response
-
-
-# sku_manager/views.py ke andar add karein (ya update karein):
-from django.db.models import Count
-
 def platform_manager(request):
-    """Dedicated Page to View and Add Marketplace Platforms"""
-    # Default platforms seed agar pehle se nahi hain
     get_or_seed_platforms()
-
     if request.method == 'POST':
         name = request.POST.get('platform_name', '').strip()
         if name:
-            obj, created = Platform.objects.get_or_create(name=name)
-            if created:
-                messages.success(request, f"Marketplace '{name}' successfully added!")
-            else:
-                messages.info(request, f"Marketplace '{name}' already exists.")
-            return redirect('platform_manager')
-        else:
-            messages.error(request, "Marketplace name cannot be empty.")
-
-    # Fetch all platforms with total products linked to each
+            Platform.objects.get_or_create(name=name)
+            messages.success(request, f"Platform '{name}' saved.")
+        return redirect('platform_manager')
     platforms = Platform.objects.annotate(linked_products=Count('platformprice')).order_by('-id')
-
-    return render(request, 'sku_manager/platforms.html', {
-        'platforms': platforms,
-        'active_page': 'platforms',
-    })
+    return render(request, 'sku_manager/platforms.html', {'platforms': platforms, 'active_page': 'platforms'})
 
 def platform_delete(request, pk):
-    """Delete a marketplace platform"""
-    platform = get_object_or_404(Platform, pk=pk)
-    name = platform.name
-    platform.delete()
-    messages.info(request, f"Marketplace '{name}' and its linked pricing have been removed.")
+    get_object_or_404(Platform, pk=pk).delete()
     return redirect('platform_manager')
 
-
-# sku_manager/views.py me imports ke sath update karein:
-import io
-import qrcode
-from django.urls import reverse
-from django.utils import timezone
-from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog
-
-# 1. QR Code Image Download View
-def sku_qr_download(request, pk):
-    item = get_object_or_404(JewelrySKU, pk=pk)
-    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
-
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=10,
-        border=2,
-    )
-    qr.add_data(dispatch_url)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    response = HttpResponse(buffer.getvalue(), content_type="image/png")
-    response['Content-Disposition'] = f'attachment; filename="QR_{item.sku}.png"'
-    return response
-
-# 2. Printable Label Tag View (Thermal sticker / Standard print ready)
-def sku_print_label(request, pk):
-    item = get_object_or_404(JewelrySKU, pk=pk)
-    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
-
-    qr = qrcode.QRCode(version=1, box_size=6, border=1)
-    qr.add_data(dispatch_url)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-
-    import base64
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-
-    return render(request, 'sku_manager/label_print.html', {
-        'item': item,
-        'qr_base64': qr_base64,
-        'dispatch_url': dispatch_url,
-    })
-
-# 3. Mobile Dispatch View (Opens on QR Scan)
-def scan_dispatch(request, sku):
-    item = get_object_or_404(JewelrySKU, sku=sku)
-    platforms = get_or_seed_platforms()
-    price_map = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
-
-    if request.method == 'POST':
-        platform_id = request.POST.get('platform_id')
-        platform = get_object_or_404(Platform, pk=platform_id)
-        
-        if item.stock <= 0:
-            messages.error(request, f"Cannot dispatch: '{item.sku}' is currently OUT OF STOCK!")
-            return redirect('scan_dispatch', sku=item.sku)
-
-        # Minus stock by 1
-        item.stock -= 1
-        item.save(update_fields=['stock', 'updated_at'])
-
-        sold_price = price_map.get(platform.id, item.selling_price)
-
-        # Record Audit Log
-        DispatchLog.objects.create(
-            sku=item,
-            platform=platform,
-            platform_name=platform.name,
-            quantity=1,
-            sold_price=sold_price,
-            stock_after=item.stock
-        )
-
-        messages.success(request, f"✓ Dispatched 1 unit for {platform.name}! Remaining Stock: {item.stock}")
-        return redirect('scan_dispatch', sku=item.sku)
-
-    # Attach specific price to each platform object for display
-    platform_data = []
-    for p in platforms:
-        platform_data.append({
-            'platform': p,
-            'price': price_map.get(p.id, item.selling_price)
-        })
-
-    recent_logs = item.dispatch_logs.all()[:5]
-
-    return render(request, 'sku_manager/dispatch.html', {
-        'item': item,
-        'platforms': platform_data,
-        'recent_logs': recent_logs,
-    })
-
-# 4. Dispatch History & Audit Log View
 def dispatch_logs(request):
     logs = DispatchLog.objects.select_related('sku').all()
-    paginator = Paginator(logs, 20)
     page = request.GET.get('page')
-    page_logs = paginator.get_page(page)
-
+    page_logs = Paginator(logs, 20).get_page(page)
     return render(request, 'sku_manager/dispatch_logs.html', {
         'logs': page_logs,
         'total_dispatches': logs.count(),
         'active_page': 'dispatch_logs',
     })
 
-# sku_manager/views.py me add karein
+def sku_qr_download(request, pk):
+    item = get_object_or_404(JewelrySKU, pk=pk)
+    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
+    qr = qrcode.QRCode(box_size=10, border=2)
+    qr.add_data(dispatch_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    response = HttpResponse(buffer.getvalue(), content_type="image/png")
+    response['Content-Disposition'] = f'attachment; filename="QR_{item.sku}.png"'
+    return response
 
-def sku_scanner(request):
-    """Live In-Browser Camera Scanner"""
-    return render(request, 'sku_manager/scanner.html', {
-        'active_page': 'scanner'
-    })
+def export_csv(request):
+    platforms = Platform.objects.all().order_by('id')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="jewelry_inventory.csv"'
+    writer = csv.writer(response)
+    headers = ['SKU', 'Category', 'Style', 'Name', 'Color', 'Size', 'Stock', 'Storage Box', 'Section', 'Cost', 'MRP']
+    for p in platforms:
+        headers.append(f"{p.name} Price")
+    headers.extend(['Listed Status', 'Created At'])
+    writer.writerow(headers)
+
+    for obj in JewelrySKU.objects.select_related('storage_box').prefetch_related('platform_prices__platform').all():
+        price_map = {pp.platform_id: pp.price for pp in obj.platform_prices.all()}
+        row = [
+            obj.sku, obj.category, obj.style, obj.name, obj.color, obj.size, obj.stock,
+            obj.storage_box.name if obj.storage_box else 'Unassigned', obj.section_name,
+            obj.purchase_price, obj.selling_price
+        ]
+        for p in platforms:
+            row.append(price_map.get(p.id, ''))
+        row.extend(['Listed' if obj.is_listed else 'Unlisted', obj.created_at.strftime("%Y-%m-%d %H:%M")])
+        writer.writerow(row)
+    return response

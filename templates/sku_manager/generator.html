@@ -119,6 +119,30 @@
         <input type="number" min="0" name="stock" id="fieldStock" value="{% if is_edit %}{{ edit_item.stock }}{% else %}15{% endif %}"
           class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-amber-500 transition">
       </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-[11px] font-bold text-amber-400 uppercase">📦 Storage Box</label>
+          <a href="{% url 'box_manager' %}" class="text-[10px] text-amber-400/80 hover:underline">+ New Box</a>
+        </div>
+        <select name="storage_box" id="fieldBox" class="w-full bg-slate-950 border border-amber-500/40 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-amber-400 transition">
+          {% for b in boxes %}
+            <option value="{{ b.id }}" {% if is_edit and edit_item.storage_box_id == b.id %}selected{% endif %}>
+              📦 {{ b.name }}
+            </option>
+          {% empty %}
+            <option value="">No boxes found</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Section in the Box -->
+      <div>
+        <label class="block text-[11px] font-bold text-amber-400 uppercase mb-1">🏷️ Compartment / Section</label>
+        <input type="text" name="section_name" id="fieldSection" placeholder="e.g. A1, Sec 2, Row 3"
+          value="{% if is_edit %}{{ edit_item.section_name }}{% else %}Sec A1{% endif %}"
+          class="w-full bg-slate-950 border border-amber-500/40 rounded-lg px-2.5 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-amber-400 transition">
+      </div>
     </div>
 
     <!-- Image Upload Strip -->

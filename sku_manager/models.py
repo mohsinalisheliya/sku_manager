@@ -9,6 +9,18 @@ class Platform(models.Model):
     def __str__(self):
         return self.name
 
+class StorageBox(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    description = models.CharField(max_length=100, blank=True, default='')
+    color_tag = models.CharField(max_length=20, default='amber')  # blue, amber, emerald, purple, rose
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
 class JewelrySKU(models.Model):
     CATEGORY_CHOICES = [
         ('BGL', 'BGL - Bangles / Kadas'),
@@ -48,7 +60,11 @@ class JewelrySKU(models.Model):
     image = models.ImageField(upload_to='products/', null=True, blank=True)
     stock = models.PositiveIntegerField(default=0)
 
-    # Core Pricing Fields
+    # Dynamic Physical Storage Link
+    storage_box = models.ForeignKey(StorageBox, on_delete=models.SET_NULL, null=True, blank=True, related_name='skus')
+    section_name = models.CharField(max_length=30, default='Section A')
+
+    # Pricing
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
@@ -78,7 +94,6 @@ class JewelrySKU(models.Model):
     def __str__(self):
         return self.sku
 
-
 class PlatformPrice(models.Model):
     sku = models.ForeignKey(JewelrySKU, on_delete=models.CASCADE, related_name='platform_prices')
     platform = models.ForeignKey(Platform, on_delete=models.CASCADE)
@@ -87,15 +102,10 @@ class PlatformPrice(models.Model):
     class Meta:
         unique_together = ('sku', 'platform')
 
-    def __str__(self):
-        return f"{self.sku.sku} - {self.platform.name}: ₹{self.price}"
-
-# sku_manager/models.py ke aakhri me add karein
-
 class DispatchLog(models.Model):
     sku = models.ForeignKey(JewelrySKU, on_delete=models.CASCADE, related_name='dispatch_logs')
     platform = models.ForeignKey(Platform, on_delete=models.SET_NULL, null=True, blank=True)
-    platform_name = models.CharField(max_length=50) # In case platform gets deleted later
+    platform_name = models.CharField(max_length=50)
     quantity = models.PositiveIntegerField(default=1)
     sold_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     stock_after = models.PositiveIntegerField(default=0)
@@ -103,6 +113,3 @@ class DispatchLog(models.Model):
 
     class Meta:
         ordering = ['-dispatched_at']
-
-    def __str__(self):
-        return f"{self.sku.sku} - {self.platform_name} @ {self.dispatched_at.strftime('%d-%b %I:%M %p')}"

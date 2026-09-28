@@ -13,8 +13,12 @@ urlpatterns = [
     path('platforms/delete/<int:pk>/', views.platform_delete, name='platform_delete'),
     path('export-csv/', views.export_csv, name='sku_export_csv'),
 
-    # QR, Camera Scanner & Dispatch
-    path('scanner/', views.sku_scanner, name='sku_scanner'),  # <-- Camera Scanner Route
+    # Dynamic Storage Boxes
+    path('boxes/', views.box_manager, name='box_manager'),
+    path('boxes/delete/<int:pk>/', views.box_delete, name='box_delete'),
+
+    # QR Scanner & Dispatch
+    path('scanner/', views.sku_scanner, name='sku_scanner'),
     path('qr/download/<int:pk>/', views.sku_qr_download, name='sku_qr_download'),
     path('print-label/<int:pk>/', views.sku_print_label, name='sku_print_label'),
     path('dispatch/<str:sku>/', views.scan_dispatch, name='scan_dispatch'),

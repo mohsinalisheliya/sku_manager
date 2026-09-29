@@ -92,6 +92,7 @@ def get_next_serial():
         return '001'
 
 # 1. Box Management Page
+@login_required(login_url='login')
 def box_manager(request):
     """Manage custom storage boxes with unique names and colors."""
     existing_boxes = StorageBox.objects.annotate(total_skus=Count('skus')).order_by('name')
@@ -149,6 +150,7 @@ def box_delete(request, pk):
     return redirect('box_manager')
 
 # 2. SKU Generator
+@login_required(login_url='login')
 def sku_generate(request):
     platforms = get_or_seed_platforms()
     boxes = get_all_boxes()
@@ -208,6 +210,7 @@ def sku_generate(request):
     })
 
 # 3. Inventory View
+@login_required(login_url='login')
 def sku_inventory(request):
     search_query = request.GET.get('q', '').strip()
     filter_status = request.GET.get('status', '').strip()
@@ -250,6 +253,7 @@ def sku_inventory(request):
     })
 
 # 4. SKU Edit
+@login_required(login_url='login')
 def sku_edit(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
     platforms = get_or_seed_platforms()
@@ -365,9 +369,11 @@ def sku_print_label(request, pk):
     })
 
 # Standard actions
+@login_required(login_url='login')
 def sku_scanner(request):
     return render(request, 'sku_manager/scanner.html', {'active_page': 'scanner'})
 
+@login_required(login_url='login')
 def sku_delete(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
     item.delete()
@@ -389,6 +395,7 @@ def adjust_stock(request, pk, action):
     item.save(update_fields=['stock', 'updated_at'])
     return redirect(request.META.get('HTTP_REFERER', 'sku_inventory'))
 
+@login_required(login_url='login')
 def platform_manager(request):
     get_or_seed_platforms()
     if request.method == 'POST':
@@ -404,6 +411,7 @@ def platform_delete(request, pk):
     get_object_or_404(Platform, pk=pk).delete()
     return redirect('platform_manager')
 
+@login_required(login_url='login')
 def dispatch_logs(request):
     logs = DispatchLog.objects.select_related('sku').all()
     page = request.GET.get('page')
@@ -427,6 +435,7 @@ def sku_qr_download(request, pk):
     response['Content-Disposition'] = f'attachment; filename="QR_{item.sku}.png"'
     return response
 
+@login_required(login_url='login')
 def export_csv(request):
     platforms = Platform.objects.all().order_by('id')
     response = HttpResponse(content_type='text/csv')

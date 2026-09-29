@@ -14,16 +14,27 @@ from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox
 
 DEFAULT_PLATFORMS = ['Flipkart', 'Amazon', 'Meesho', 'Website']
 PRESET_COLORS = [
+    # Reds & Crimsons
     '#EF4444', '#DC2626', '#B91C1C', '#991B1B',
+    # Rose & Pink
     '#F43F5E', '#E11D48', '#BE123C', '#EC4899', '#DB2777', '#BE185D',
+    # Corals & Oranges
     '#FB923C', '#F97316', '#EA580C', '#C2410C',
+    # Ambers & Gold
     '#FBBF24', '#F59E0B', '#D97706', '#B45309',
+    # Yellows & Brass
     '#FDE047', '#EAB308', '#CA8A04', '#A16207',
+    # Limes & Olive
     '#A3E635', '#84CC16', '#65A30D', '#4D7C0F',
+    # Greens & Emerald
     '#4ADE80', '#22C55E', '#16A34A', '#15803D', '#10B981', '#059669', '#047857',
+    # Teals & Aquas
     '#2DD4BF', '#14B8A6', '#0D9488', '#0F766E', '#06B6D4', '#0891B2', '#0E7490',
+    # Blues & Cobalt
     '#38BDF8', '#0EA5E9', '#0284C7', '#3B82F6', '#2563EB', '#1D4ED8',
+    # Indigos & Violets
     '#818CF8', '#6366F1', '#4F46E5', '#8B5CF6', '#7C3AED', '#6D28D9',
+    # Purples & Magentas
     '#C084FC', '#A855F7', '#9333EA', '#E879F9', '#D946EF', '#C026D3',
 ]
 
@@ -48,45 +59,50 @@ def get_next_serial():
 
 # 1. Box Management Page
 def box_manager(request):
+    """Manage custom storage boxes with unique names and colors."""
     existing_boxes = StorageBox.objects.annotate(total_skus=Count('skus')).order_by('name')
-    used_colors_map = {box.color_tag.upper(): box.name for box in existing_boxes if box.color_tag}
+    used_colors_map = {b.color_tag.upper(): b.name for b in existing_boxes if b.color_tag}
 
     if request.method == 'POST':
         name = request.POST.get('box_name', '').strip()
         color_tag = request.POST.get('color_tag', '').strip().upper()
         description = request.POST.get('description', '').strip()
 
+        if color_tag and not color_tag.startswith('#'):
+            color_tag = f"#{color_tag}"
+
         if not name:
             messages.error(request, "Box name cannot be empty.")
             return redirect('box_manager')
 
         if StorageBox.objects.filter(name__iexact=name).exists():
-            messages.error(request, f"Error: A storage box named '{name}' already exists!")
-            return redirect('box_manager')
-
-        if color_tag and not color_tag.startswith('#'):
-            color_tag = f'#{color_tag}'
-
-        if color_tag and not re.fullmatch(r'#[0-9A-F]{6}', color_tag):
-            messages.error(request, 'Color must be a valid HEX value such as #E11D48.')
+            messages.error(request, f"Error: A storage box named '{name}' already exists! Box names must be unique.")
             return redirect('box_manager')
 
         if color_tag in used_colors_map:
-            messages.error(request, f"Error: Color {color_tag} is already assigned to '{used_colors_map[color_tag]}'!")
+            messages.error(request, f"Error: Color {color_tag} is already assigned to '{used_colors_map[color_tag]}'! Please pick another color.")
             return redirect('box_manager')
 
-        color_tag = color_tag or '#F59E0B'
-        if color_tag in used_colors_map:
-            messages.error(request, f"Error: Color {color_tag} is already assigned to '{used_colors_map[color_tag]}'!")
-            return redirect('box_manager')
-
-        StorageBox.objects.create(name=name, color_tag=color_tag, description=description)
-        messages.success(request, f"Storage box '{name}' with tag {color_tag} successfully created!")
+        StorageBox.objects.create(
+            name=name,
+            color_tag=color_tag or '#F59E0B',
+            description=description,
+        )
+        messages.success(request, f"Storage box '{name}' successfully created!")
         return redirect('box_manager')
+
+    color_swatches = []
+    for color in PRESET_COLORS:
+        c_upper = color.upper()
+        color_swatches.append({
+            'hex': c_upper,
+            'is_taken': c_upper in used_colors_map,
+            'used_by': used_colors_map.get(c_upper, ''),
+        })
 
     return render(request, 'sku_manager/boxes.html', {
         'boxes': existing_boxes,
-        'preset_colors': PRESET_COLORS,
+        'color_swatches': color_swatches,
         'used_colors_map': used_colors_map,
         'active_page': 'boxes',
     })

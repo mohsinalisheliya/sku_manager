@@ -12,6 +12,9 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
 from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox
 
+
+
+
 DEFAULT_PLATFORMS = ['Flipkart', 'Amazon', 'Meesho', 'Website']
 PRESET_COLORS = [
     # Reds & Crimsons

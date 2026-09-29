@@ -1,86 +1,181 @@
 {% extends "sku_manager/base.html" %}
-{% load custom_filters %}
 
 {% block title %}Storage Box & Bin Management - Velfira{% endblock %}
 
 {% block content %}
 <header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-4">
   <div>
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold uppercase tracking-wider mb-2">Warehouse Bins & Storage</div>
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold uppercase tracking-wider mb-2">
+      Warehouse Bins & Storage
+    </div>
     <h1 class="text-2xl font-extrabold text-white">Storage Box Manager</h1>
     <p class="text-slate-400 text-xs mt-0.5">Create physical bins with unique names and non-duplicating color codes.</p>
   </div>
-  <a href="{% url 'sku_generate' %}" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-xl transition">← Back to Generator</a>
+  <a href="{% url 'sku_generate' %}" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-xl transition">
+    ← Back to Generator
+  </a>
 </header>
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+  
+  <!-- Add Box Form -->
   <div class="lg:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
     <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2"><span>📦</span> Create New Storage Unit</h2>
-      <span class="text-[10px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">Unique Names & Colors Only</span>
+      <h2 class="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+        <span>📦</span> Create New Storage Unit
+      </h2>
+      <span class="text-[10px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+        Unique Names & Colors Only
+      </span>
     </div>
+
     <form method="POST" action="{% url 'box_manager' %}" class="space-y-4">
       {% csrf_token %}
+
+      <!-- Box Name -->
       <div>
-        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Box Name / ID <span class="text-rose-400">*</span></label>
-        <input type="text" name="box_name" id="inputBoxName" required placeholder="e.g. Box 5, Drawer B, Velvet Tray 1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition">
-        <p class="text-[10px] text-slate-500 mt-1">Must be unique, including letter case differences.</p>
+        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+          Box Name / ID <span class="text-rose-400">*</span>
+        </label>
+        <input type="text" name="box_name" id="inputBoxName" required placeholder="e.g. Box 5, Drawer B, Velvet Tray 1" 
+          class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition">
+        <p class="text-[10px] text-slate-500 mt-1">Must be unique (cannot match any existing box).</p>
       </div>
+
+      <!-- Color Palette & Custom Picker -->
       <div class="space-y-2">
-        <div class="flex items-center justify-between"><label class="block text-xs font-semibold text-slate-300 uppercase">Color Tag <span class="text-rose-400">*</span></label><span class="text-[10px] text-slate-400">Locked colors (🔒) are already taken</span></div>
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-semibold text-slate-300 uppercase">
+            Color Tag <span class="text-rose-400">*</span>
+          </label>
+          <span class="text-[10px] text-slate-400">Locked colors (🔒) are already taken</span>
+        </div>
+
+        <!-- Custom Color Picker Strip -->
         <div class="flex items-center gap-2.5 bg-slate-950 border border-slate-800 p-2 rounded-xl">
-          <input type="color" id="nativeColorPicker" value="#3B82F6" class="w-9 h-9 rounded-lg bg-transparent cursor-pointer border-0 p-0">
-          <div class="flex-1"><input type="text" name="color_tag" id="inputColorTag" value="#3B82F6" required maxlength="7" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-amber-300 uppercase focus:outline-none focus:border-amber-500"></div>
+          <input type="color" id="nativeColorPicker" value="#3B82F6" 
+            class="w-9 h-9 rounded-lg bg-transparent cursor-pointer border-0 p-0">
+          <div class="flex-1">
+            <input type="text" name="color_tag" id="inputColorTag" value="#3B82F6" required maxlength="7"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-amber-300 uppercase focus:outline-none focus:border-amber-500">
+          </div>
           <span id="customColorStatus" class="text-[10px] font-mono text-emerald-400 font-bold px-2">Available</span>
         </div>
+
+        <!-- 48 Curated Palette Swatches -->
         <div class="pt-1">
-          <span class="text-[10px] uppercase font-bold text-slate-500 block mb-1.5">Or Pick from Curated Swatches ({{ preset_colors|length }} Available):</span>
+          <span class="text-[10px] uppercase font-bold text-slate-500 block mb-1.5">
+            Or Pick from Curated Swatches ({{ color_swatches|length }} Available):
+          </span>
           <div class="grid grid-cols-8 sm:grid-cols-12 gap-1.5 bg-slate-950 border border-slate-800 p-2.5 rounded-xl max-h-48 overflow-y-auto">
-            {% for color in preset_colors %}
-              {% if color in used_colors_map %}
-                <button type="button" disabled title="Already used by '{{ used_colors_map|dict_lookup:color }}'" class="w-7 h-7 rounded-lg relative cursor-not-allowed opacity-30 border border-slate-800 flex items-center justify-center" style="background-color: {{ color }};"><span class="text-[9px] text-white drop-shadow">🔒</span></button>
+            {% for swatch in color_swatches %}
+              {% if swatch.is_taken %}
+                <!-- Already Used / Locked Color -->
+                <button type="button" disabled title="Already used by '{{ swatch.used_by }}'"
+                  class="w-7 h-7 rounded-lg relative cursor-not-allowed opacity-30 border border-slate-800 flex items-center justify-center"
+                  style="background-color: {{ swatch.hex }};">
+                  <span class="text-[9px] text-white drop-shadow">🔒</span>
+                </button>
               {% else %}
-                <button type="button" onclick="selectPresetColor('{{ color }}')" title="Select {{ color }}" class="color-swatch-btn w-7 h-7 rounded-lg transition-transform hover:scale-110 active:scale-95 border-2 border-transparent hover:border-white shadow-sm flex items-center justify-center" style="background-color: {{ color }};" data-color="{{ color }}"></button>
+                <!-- Available Color Swatch -->
+                <button type="button" onclick="selectPresetColor('{{ swatch.hex }}')" title="Select {{ swatch.hex }}"
+                  class="color-swatch-btn w-7 h-7 rounded-lg transition-transform hover:scale-110 active:scale-95 border-2 border-transparent hover:border-white shadow-sm flex items-center justify-center"
+                  style="background-color: {{ swatch.hex }};" data-color="{{ swatch.hex }}">
+                </button>
               {% endif %}
             {% endfor %}
           </div>
         </div>
       </div>
+
+      <!-- Live Badge Preview -->
       <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl flex items-center justify-between">
         <span class="text-[11px] uppercase font-bold text-slate-400">Live Preview:</span>
-        <div id="previewBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold font-mono transition-all" style="background-color: #3B82F625; color: #3B82F6; border: 1px solid #3B82F666;"><span>📍</span><span id="previewName">Box Name</span></div>
+        <div id="previewBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold font-mono transition-all"
+             style="background-color: #3B82F625; color: #3B82F6; border: 1px solid #3B82F666;">
+          <span>📍</span>
+          <span id="previewName">Box Name</span>
+        </div>
       </div>
-      <div><label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Notes / Description (Optional)</label><input type="text" name="description" placeholder="e.g. Top shelf, Chokers only" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition"></div>
-      <button type="submit" id="submitBtn" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20">+ Save Unique Storage Box</button>
+
+      <!-- Notes -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Notes / Description (Optional)</label>
+        <input type="text" name="description" placeholder="e.g. Top shelf, Chokers only" 
+          class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition">
+      </div>
+
+      <button type="submit" id="submitBtn" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20">
+        + Save Unique Storage Box
+      </button>
     </form>
   </div>
 
+  <!-- Right: Existing Boxes List -->
   <div class="lg:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-    <div class="flex items-center justify-between"><h2 class="text-sm font-bold uppercase tracking-wider text-white">Configured Units ({{ boxes.count }})</h2><span class="text-[10px] text-slate-400 font-mono">{{ preset_colors|length }} curated colors</span></div>
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-white">Configured Units ({{ boxes.count }})</h2>
+      <span class="text-[10px] text-slate-400 font-mono">{{ color_swatches|length }} total palette colors</span>
+    </div>
+
     <div class="overflow-x-auto rounded-xl border border-slate-800">
       <table class="w-full text-left text-xs text-slate-300">
-        <thead class="bg-slate-950 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800"><tr><th class="py-2.5 px-3">Box Unit</th><th class="py-2.5 px-3">Assigned Color</th><th class="py-2.5 px-3 text-center">Items</th><th class="py-2.5 px-3 text-right">Action</th></tr></thead>
+        <thead class="bg-slate-950 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
+          <tr>
+            <th class="py-2.5 px-3">Box Unit</th>
+            <th class="py-2.5 px-3">Assigned Color</th>
+            <th class="py-2.5 px-3 text-center">Items</th>
+            <th class="py-2.5 px-3 text-right">Action</th>
+          </tr>
+        </thead>
         <tbody class="divide-y divide-slate-800/60">
           {% for box in boxes %}
             <tr class="hover:bg-slate-800/30 transition">
-              <td class="py-3 px-3"><div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg font-bold font-mono text-xs" style="background-color: {{ box.color_tag }}20; color: {{ box.color_tag }}; border: 1px solid {{ box.color_tag }}50;"><span>📍</span><span>{{ box.name }}</span></div>{% if box.description %}<div class="text-[10px] text-slate-500 mt-0.5 truncate max-w-xs">{{ box.description }}</div>{% endif %}</td>
-              <td class="py-3 px-3 font-mono font-bold text-[11px]"><span class="w-3.5 h-3.5 rounded-full inline-block border border-white/20 shadow-sm mr-2" style="background-color: {{ box.color_tag }};"></span>{{ box.color_tag }}</td>
-              <td class="py-3 px-3 text-center font-mono font-bold text-amber-400">{{ box.total_skus }} SKUs</td>
-              <td class="py-3 px-3 text-right"><a href="{% url 'box_delete' box.pk %}" onclick="return confirm('Delete \u0027{{ box.name }}\u0027? Items will be unassigned.');" class="text-[10px] text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded transition">Delete</a></td>
+              <td class="py-3 px-3">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg font-bold font-mono text-xs"
+                     style="background-color: {{ box.color_tag }}20; color: {{ box.color_tag }}; border: 1px solid {{ box.color_tag }}50;">
+                  <span>📍</span>
+                  <span>{{ box.name }}</span>
+                </div>
+                {% if box.description %}
+                  <div class="text-[10px] text-slate-500 mt-0.5 truncate max-w-xs">{{ box.description }}</div>
+                {% endif %}
+              </td>
+              <td class="py-3 px-3 font-mono font-bold text-[11px] flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full inline-block border border-white/20 shadow-sm" style="background-color: {{ box.color_tag }};"></span>
+                <span>{{ box.color_tag }}</span>
+              </td>
+              <td class="py-3 px-3 text-center font-mono font-bold text-amber-400">
+                {{ box.total_skus }} SKUs
+              </td>
+              <td class="py-3 px-3 text-right">
+                <a href="{% url 'box_delete' box.pk %}" onclick="return confirm('Delete \'{{ box.name }}\'? Items will be unassigned.')" 
+                   class="text-[10px] text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded transition">
+                  Delete
+                </a>
+              </td>
             </tr>
-          {% empty %}<tr><td colspan="4" class="text-center py-8 text-slate-500">No boxes created yet. Fill the form to create your first storage unit.</td></tr>{% endfor %}
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-8 text-slate-500">No boxes created yet. Fill the form to create your first storage unit.</td>
+            </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
   const usedColors = {
-    {% for color, name in used_colors_map.items %}"{{ color|upper }}": "{{ name|escapejs }}",{% endfor %}
+    {% for color, name in used_colors_map.items %}
+      "{{ color|upper }}": "{{ name }}",
+    {% endfor %}
   };
+
   const inputBoxName = document.getElementById('inputBoxName');
   const inputColorTag = document.getElementById('inputColorTag');
   const nativeColorPicker = document.getElementById('nativeColorPicker');
@@ -88,24 +183,63 @@
   const previewBadge = document.getElementById('previewBadge');
   const previewName = document.getElementById('previewName');
   const submitBtn = document.getElementById('submitBtn');
-  function updateColor(value) {
-    let hex = value.trim().toUpperCase();
+
+  function updateColor(hex) {
+    hex = hex.toUpperCase();
     if (!hex.startsWith('#')) hex = '#' + hex;
+
     inputColorTag.value = hex;
-    const valid = /^#[0-9A-F]{6}$/.test(hex);
-    if (valid) { nativeColorPicker.value = hex; previewBadge.style.backgroundColor = hex + '25'; previewBadge.style.color = hex; previewBadge.style.borderColor = hex + '66'; }
-    const taken = usedColors[hex];
-    customColorStatus.innerText = !valid ? 'Invalid HEX' : taken ? `Taken by "${taken}"` : 'Available ✓';
-    customColorStatus.className = `text-[10px] font-mono font-bold px-2 ${valid && !taken ? 'text-emerald-400' : 'text-rose-400'}`;
-    submitBtn.disabled = !valid || Boolean(taken);
-    submitBtn.classList.toggle('opacity-50', submitBtn.disabled);
-    submitBtn.classList.toggle('cursor-not-allowed', submitBtn.disabled);
-    document.querySelectorAll('.color-swatch-btn').forEach((button) => button.classList.toggle('border-white', button.dataset.color.toUpperCase() === hex));
+    nativeColorPicker.value = hex.length === 7 ? hex : '#3B82F6';
+
+    previewBadge.style.backgroundColor = hex + '25';
+    previewBadge.style.color = hex;
+    previewBadge.style.borderColor = hex + '66';
+
+    if (usedColors[hex]) {
+      customColorStatus.innerText = `Taken by "${usedColors[hex]}" ❌`;
+      customColorStatus.className = 'text-[10px] font-mono text-rose-400 font-bold px-2';
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+      customColorStatus.innerText = 'Available ✓';
+      customColorStatus.className = 'text-[10px] font-mono text-emerald-400 font-bold px-2';
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    document.querySelectorAll('.color-swatch-btn').forEach(btn => {
+      if (btn.getAttribute('data-color').toUpperCase() === hex) {
+        btn.classList.add('border-white', 'scale-110');
+      } else {
+        btn.classList.remove('border-white', 'scale-110');
+      }
+    });
   }
-  function selectPresetColor(hex) { updateColor(hex); }
-  inputBoxName.addEventListener('input', (event) => { previewName.innerText = event.target.value.trim() || 'Box Name'; });
-  nativeColorPicker.addEventListener('input', (event) => updateColor(event.target.value));
-  inputColorTag.addEventListener('input', (event) => updateColor(event.target.value));
-  window.addEventListener('DOMContentLoaded', () => { const first = document.querySelector('.color-swatch-btn'); updateColor(first ? first.dataset.color : inputColorTag.value); });
+
+  function selectPresetColor(hex) {
+    updateColor(hex);
+  }
+
+  inputBoxName.addEventListener('input', (e) => {
+    previewName.innerText = e.target.value.trim() || 'Box Name';
+  });
+
+  nativeColorPicker.addEventListener('input', (e) => {
+    updateColor(e.target.value);
+  });
+
+  inputColorTag.addEventListener('input', (e) => {
+    let val = e.target.value.trim().toUpperCase();
+    if (val.length === 7) {
+      updateColor(val);
+    }
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const swatches = document.querySelectorAll('.color-swatch-btn');
+    if (swatches.length > 0) {
+      updateColor(swatches[0].getAttribute('data-color'));
+    }
+  });
 </script>
 {% endblock %}

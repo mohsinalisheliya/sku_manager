@@ -79,10 +79,26 @@
       </nav>
     </div>
 
-    <!-- Bottom Status Dot -->
-    <div class="px-2 py-2 flex items-center gap-3 text-slate-500">
-      <span class="w-2.5 h-2.5 min-w-[10px] rounded-full bg-emerald-400 animate-pulse"></span>
-      <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-[11px] text-slate-400 font-mono">SQLite Connected</span>
+    <div class="space-y-3 pt-3 border-t border-slate-800/80">
+      <!-- Logged-in User Info -->
+      <div class="flex items-center gap-3 px-1.5 overflow-hidden">
+        <div class="w-8 h-8 min-w-[32px] rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-amber-400 text-xs">
+          {{ request.user.username|slice:":1"|upper }}
+        </div>
+        <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 overflow-hidden">
+          <div class="text-xs font-bold text-white truncate">{{ request.user.username }}</div>
+          <div class="text-[9px] text-emerald-400 font-mono">Authenticated</div>
+        </div>
+      </div>
+
+      <!-- Logout Button -->
+      <a href="{% url 'logout' %}" title="Log Out"
+        class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 border border-transparent hover:border-rose-500/20 transition">
+        <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+        <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-semibold">Sign Out</span>
+      </a>
     </div>
   </aside>
 

@@ -13,6 +13,37 @@ from django.urls import reverse
 from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox
 
 
+# sku_manager/views.py ke top imports me add karein:
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+
+# --- Authentication Views ---
+
+def user_login(request):
+    """Clean dark-themed login without forms.py"""
+    if request.user.is_authenticated:
+        return redirect('sku_generate')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            messages.success(request, f"Welcome back, {user.username}!")
+            next_url = request.POST.get('next') or request.GET.get('next') or 'sku_generate'
+            return redirect(next_url)
+        else:
+            messages.error(request, "Invalid username or password. Please try again.")
+
+    return render(request, 'sku_manager/login.html')
+
+def user_logout(request):
+    """Logout action"""
+    logout(request)
+    messages.info(request, "You have been logged out successfully.")
+    return redirect('login')
 
 
 DEFAULT_PLATFORMS = ['Flipkart', 'Amazon', 'Meesho', 'Website']

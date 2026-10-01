@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tag: {{ item.sku }}</title>
+  <title>Tag: {{ item.sku }} - Tatkal Pick</title>
   <style>
     @page {
       size: 50mm 30mm;
@@ -75,7 +75,7 @@
       font-family: monospace;
     }
 
-    /* Top Action Bar (Hidden during Print) */
+    /* Top Non-Printing Action Bar */
     .no-print-bar {
       position: fixed;
       top: 12px;
@@ -159,7 +159,7 @@
 </head>
 <body>
 
-  <!-- Non-Printing Customization Header -->
+  <!-- Non-Printing Header -->
   <div class="no-print-bar">
     <div class="brand-input-wrapper">
       <label for="brandInput">Brand:</label>
@@ -174,10 +174,9 @@
   <div class="label-box">
     <img src="data:image/png;base64,{{ qr_base64 }}" class="qr-img" alt="QR">
     <div class="info">
-      <!-- Inside templates/sku_manager/label_print.html in the label-box: -->
-<div class="brand" id="brandDisplay" contenteditable="true" title="Click to edit brand name directly">
-  {{ settings.brand_name|default:"TATKAL PICK" }}
-</div>
+      <div class="brand" id="brandDisplay" contenteditable="true" title="Click to edit brand name directly">
+        {{ settings.brand_name|default:"TATKAL PICK" }}
+      </div>
       <div class="sku">{{ item.sku }}</div>
       <div class="meta">
         📍 {{ item.storage_box.name|default:"Unassigned" }} | {{ item.section_name|default:"Main" }}
@@ -190,7 +189,6 @@
     const brandInput = document.getElementById('brandInput');
     const brandDisplay = document.getElementById('brandDisplay');
 
-    // 1. Load the brand from URL query (?brand=Name), database settings, or the default.
     const dbBrand = "{{ settings.brand_name|escapejs }}";
     const urlParams = new URLSearchParams(window.location.search);
     const activeBrand = urlParams.get('brand') || dbBrand || 'TATKAL PICK';
@@ -198,21 +196,18 @@
     brandDisplay.innerText = activeBrand;
     brandInput.value = activeBrand;
 
-    // 2. Synchronize top input field with the sticker label and save to localStorage
     brandInput.addEventListener('input', (e) => {
       const val = e.target.value.trim() || 'TATKAL PICK';
       brandDisplay.innerText = val;
       localStorage.setItem('tp_custom_brand_name', val);
     });
 
-    // 3. Synchronize inline label editing directly on the sticker
     brandDisplay.addEventListener('input', (e) => {
       const val = e.target.innerText.trim();
       brandInput.value = val;
       localStorage.setItem('tp_custom_brand_name', val || 'TATKAL PICK');
     });
 
-    // 4. Auto-trigger print if requested
     if (urlParams.has('autoprint')) {
       window.print();
     }

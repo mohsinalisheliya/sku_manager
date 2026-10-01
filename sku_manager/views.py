@@ -459,3 +459,33 @@ def export_csv(request):
         row.extend(['Listed' if obj.is_listed else 'Unlisted', obj.created_at.strftime("%Y-%m-%d %H:%M")])
         writer.writerow(row)
     return response
+
+# sku_manager/views.py ke andar add karein:
+from .models import AppSettings
+
+@login_required(login_url='login')
+def app_settings_view(request):
+    """Database-driven System Settings View"""
+    settings_obj = AppSettings.get_settings()
+
+    if request.method == 'POST':
+        brand_name = request.POST.get('brand_name', '').strip()
+        tagline = request.POST.get('tagline', '').strip()
+        currency_symbol = request.POST.get('currency_symbol', '₹').strip()
+        low_stock = request.POST.get('low_stock_threshold', '5').strip()
+        support_contact = request.POST.get('support_contact', '').strip()
+
+        settings_obj.brand_name = brand_name or 'TATKAL PICK'
+        settings_obj.tagline = tagline
+        settings_obj.currency_symbol = currency_symbol or '₹'
+        settings_obj.low_stock_threshold = int(low_stock) if low_stock.isdigit() else 5
+        settings_obj.support_contact = support_contact
+        settings_obj.save()
+
+        messages.success(request, "Settings updated successfully!")
+        return redirect('app_settings')
+
+    return render(request, 'sku_manager/settings.html', {
+        'settings': settings_obj,
+        'active_page': 'settings',
+    })

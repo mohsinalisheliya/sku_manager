@@ -15,18 +15,20 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #fff;
+      background: #f1f5f9;
       color: #000;
     }
     .label-box {
       width: 44mm;
       height: 24mm;
-      border: 1px dashed #bbb;
+      background: #fff;
+      border: 1px dashed #94a3b8;
       box-sizing: border-box;
       padding: 1.5mm;
       display: flex;
       gap: 2mm;
       align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     .qr-img {
       width: 20mm;
@@ -45,6 +47,15 @@
       font-size: 7pt;
       font-weight: 900;
       letter-spacing: 0.5px;
+      text-transform: uppercase;
+      outline: none;
+      cursor: text;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brand:focus {
+      background: #fef08a;
     }
     .sku {
       font-family: monospace;
@@ -55,59 +66,155 @@
     }
     .meta {
       font-size: 5pt;
-      color: #333;
+      font-weight: 800;
+      color: #1e293b;
     }
     .price {
       font-size: 7.5pt;
       font-weight: 900;
       font-family: monospace;
     }
+
+    /* Top Action Bar (Hidden during Print) */
     .no-print-bar {
       position: fixed;
-      top: 10px;
-      right: 10px;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
+      align-items: center;
       gap: 8px;
+      background: #0f172a;
+      padding: 6px 12px;
+      border-radius: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      z-index: 50;
+    }
+    .brand-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      border-right: 1px solid #334155;
+      padding-right: 10px;
+      margin-right: 2px;
+    }
+    .brand-input {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      outline: none;
+      width: 140px;
+    }
+    .brand-input:focus {
+      border-color: #f59e0b;
     }
     .btn {
-      padding: 6px 12px;
-      background: #0f172a;
-      color: #fff;
+      padding: 5px 10px;
+      background: #f59e0b;
+      color: #0f172a;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 800;
       text-decoration: none;
       cursor: pointer;
       border: none;
+      transition: background 0.15s;
+      white-space: nowrap;
     }
+    .btn:hover {
+      background: #fbbf24;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: #f8fafc;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
     @media print {
-      .label-box { border: none; }
-      .no-print-bar { display: none; }
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .label-box {
+        border: none;
+        box-shadow: none;
+      }
+      .no-print-bar {
+        display: none !important;
+      }
+      .brand:focus {
+        background: transparent;
+      }
     }
   </style>
 </head>
 <body>
 
+  <!-- Non-Printing Customization Header -->
   <div class="no-print-bar">
-    <button class="btn" onclick="window.print()">🖨️ Print Label</button>
-    <a class="btn" href="{% url 'sku_qr_download' item.pk %}">⬇️ Download QR PNG</a>
-    <a class="btn" href="{% url 'sku_inventory' %}" style="background:#475569;">Back</a>
+    <div class="brand-input-wrapper">
+      <label for="brandInput">Brand:</label>
+      <input type="text" id="brandInput" class="brand-input" placeholder="Enter Brand Name">
+    </div>
+    <button class="btn" onclick="window.print()">🖨️ Print Tag</button>
+    <a class="btn btn-secondary" href="{% url 'sku_qr_download' item.pk %}">⬇️ PNG</a>
+    <a class="btn btn-secondary" href="{% url 'sku_inventory' %}">Exit</a>
   </div>
 
+  <!-- Physical 50x30mm Printable Sticker Tag -->
   <div class="label-box">
     <img src="data:image/png;base64,{{ qr_base64 }}" class="qr-img" alt="QR">
     <div class="info">
-      <div class="brand">VELFIRA JEWELS</div>
+      <!-- Directly editable on click or via the top input field -->
+      <div class="brand" id="brandDisplay" contenteditable="true" title="Click to edit brand name directly">
+        TATKAL PICK
+      </div>
       <div class="sku">{{ item.sku }}</div>
-      <div class="meta" style="font-weight: 800; color: #000;">
-        📍 {{ item.storage_box.name|default:"No Box" }} | {{ item.section_name }}
+      <div class="meta">
+        📍 {{ item.storage_box.name|default:"Unassigned" }} | {{ item.section_name|default:"Main" }}
       </div>
       <div class="price">MRP: ₹{{ item.selling_price }}</div>
     </div>
   </div>
 
   <script>
-    // Auto-trigger print dialog if opened in a dedicated print window
-    if (window.location.search.includes('autoprint=true')) {
+    const brandInput = document.getElementById('brandInput');
+    const brandDisplay = document.getElementById('brandDisplay');
+
+    // 1. Load saved brand from URL query (?brand=Name) or localStorage, defaulting to 'TATKAL PICK'
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlBrand = urlParams.get('brand');
+    const storedBrand = localStorage.getItem('tp_custom_brand_name');
+    const activeBrand = urlBrand || storedBrand || 'TATKAL PICK';
+
+    brandDisplay.innerText = activeBrand;
+    brandInput.value = activeBrand;
+
+    // 2. Synchronize top input field with the sticker label and save to localStorage
+    brandInput.addEventListener('input', (e) => {
+      const val = e.target.value.trim() || 'TATKAL PICK';
+      brandDisplay.innerText = val;
+      localStorage.setItem('tp_custom_brand_name', val);
+    });
+
+    // 3. Synchronize inline label editing directly on the sticker
+    brandDisplay.addEventListener('input', (e) => {
+      const val = e.target.innerText.trim();
+      brandInput.value = val;
+      localStorage.setItem('tp_custom_brand_name', val || 'TATKAL PICK');
+    });
+
+    // 4. Auto-trigger print if requested
+    if (urlParams.has('autoprint')) {
       window.print();
     }
   </script>

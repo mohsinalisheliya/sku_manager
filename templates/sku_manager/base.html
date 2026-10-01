@@ -1,10 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Jewelry Inventory Suite{% endblock %}</title>
+  <title>{% block title %}Tatkal Pick - Universal Inventory & Fast Dispatch{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          }
+        }
+      }
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -12,104 +28,146 @@
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
     .sku-mono { font-family: 'JetBrains Mono', monospace; }
   </style>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex antialiased">
 
-  <!-- Reactive Sidebar (Collapses to icons, expands on hover) -->
-  <aside class="group fixed left-0 top-0 z-40 h-screen w-16 hover:w-60 transition-all duration-300 ease-in-out bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-2.5 shadow-2xl overflow-hidden">
+  <!-- Early Theme Detection Script (Prevents White/Dark Flash) -->
+  <script>
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex antialiased transition-colors duration-200">
+
+  <!-- Reactive Expandable Sidebar -->
+  <aside class="group fixed left-0 top-0 z-40 h-screen w-16 hover:w-60 transition-all duration-300 ease-in-out bg-white border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800 flex flex-col justify-between p-2.5 shadow-xl overflow-hidden">
     
     <div class="space-y-6">
-      <!-- Logo / Icon -->
-      <div class="flex items-center gap-3 px-1 py-1">
-        <div class="w-10 h-10 min-w-[40px] rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
-          V
+      <!-- Universal Tatkal Pick Logo -->
+      <a href="{% url 'sku_generate' %}" class="flex items-center gap-3 px-1 py-1">
+        <div class="w-10 h-10 min-w-[40px] rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950">
+          <!-- Fast Speed-Box SVG Logo -->
+          <svg class="w-6 h-6 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+            <path d="m3.3 7 8.7 5 8.7-5"/>
+            <path d="M12 22V12"/>
+            <path d="m13 7-4 5h4l-2 5" class="stroke-slate-950 fill-amber-300" stroke-width="2"/>
+          </svg>
         </div>
         <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
-          <div class="font-extrabold text-white text-base tracking-wide leading-tight">VELFIRA</div>
-          <div class="text-[9px] text-amber-400 uppercase font-semibold tracking-wider">SKU Studio</div>
+          <div class="font-black text-slate-900 dark:text-white text-base tracking-wide leading-tight">TATKAL PICK</div>
+          <div class="text-[9px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider">Fulfillment OS</div>
         </div>
-      </div>
+      </a>
 
       <!-- Navigation Links -->
       <nav class="space-y-1.5">
-        <a href="{% url 'sku_scanner' %}" title="Open Camera Scanner"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'scanner' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-amber-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <!-- Live Camera Scanner -->
+        <a href="{% url 'sku_scanner' %}" title="Camera Scanner"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'scanner' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-amber-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
-          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-bold">Camera Scanner</span>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-bold">Fast Scanner</span>
         </a>
 
-        <a href="{% url 'sku_generate' %}" title="SKU Generator"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'generator' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <!-- Product Generator -->
+        <a href="{% url 'sku_generate' %}" title="Item & SKU Generator"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'generator' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
           <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">SKU Generator</span>
         </a>
 
+        <!-- Inventory View -->
         <a href="{% url 'sku_inventory' %}" title="Inventory Catalog"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'inventory' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'inventory' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zm0 4h16M9 4v4m6-4v4"></path></svg>
-          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Inventory View</span>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Stock Catalog</span>
         </a>
 
+        <!-- Storage Boxes -->
+        <a href="{% url 'box_manager' %}" title="Storage Boxes"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'boxes' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
+          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Storage Units</span>
+        </a>
+
+        <!-- Dispatch Logs -->
         <a href="{% url 'dispatch_logs' %}" title="Dispatch Logs"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'dispatch_logs' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'dispatch_logs' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Dispatch Logs</span>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Dispatch Audit</span>
         </a>
 
+        <!-- Marketplace Channels -->
         <a href="{% url 'platform_manager' %}" title="Marketplace Channels"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'platforms' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'platforms' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
           <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Marketplaces</span>
         </a>
 
-        <a href="{% url 'box_manager' %}" title="Manage Boxes"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'boxes' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Storage Boxes</span>
-        </a>
-
+        <!-- Export CSV -->
         <a href="{% url 'sku_export_csv' %}" title="Export CSV"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition text-slate-400 hover:bg-slate-800 hover:text-white">
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
           <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Export CSV</span>
         </a>
       </nav>
     </div>
 
-    <div class="space-y-3 pt-3 border-t border-slate-800/80">
-      <!-- Logged-in User Info -->
+    <!-- Bottom Controls: Theme Toggle & User Info -->
+    <div class="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+      
+      <!-- Theme Switcher Button -->
+      <button id="themeToggleBtn" type="button" title="Switch Theme"
+        class="w-full flex items-center gap-3.5 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+        <!-- Sun Icon (for Dark Mode) -->
+        <svg id="themeIconSun" class="w-5 h-5 min-w-[20px] hidden text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+        <!-- Moon Icon (for Light Mode) -->
+        <svg id="themeIconMoon" class="w-5 h-5 min-w-[20px] text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+        </svg>
+        <span id="themeToggleText" class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-semibold">
+          Light Mode
+        </span>
+      </button>
+
+      {% if request.user.is_authenticated %}
+      <!-- Authenticated User Profile -->
       <div class="flex items-center gap-3 px-1.5 overflow-hidden">
-        <div class="w-8 h-8 min-w-[32px] rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-amber-400 text-xs">
+        <div class="w-8 h-8 min-w-[32px] rounded-lg bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 flex items-center justify-center font-bold text-amber-600 dark:text-amber-400 text-xs">
           {{ request.user.username|slice:":1"|upper }}
         </div>
         <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 overflow-hidden">
-          <div class="text-xs font-bold text-white truncate">{{ request.user.username }}</div>
-          <div class="text-[9px] text-emerald-400 font-mono">Authenticated</div>
+          <div class="text-xs font-bold text-slate-800 dark:text-white truncate">{{ request.user.username }}</div>
+          <div class="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono">Active</div>
         </div>
       </div>
 
       <!-- Logout Button -->
       <a href="{% url 'logout' %}" title="Log Out"
-        class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 border border-transparent hover:border-rose-500/20 transition">
+        class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-500 hover:bg-rose-500/10 hover:text-rose-500 transition">
         <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
         </svg>
         <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-semibold">Sign Out</span>
       </a>
+      {% endif %}
     </div>
   </aside>
 
-  <!-- Main Content Space (Utilizing 100% available screen) -->
-  <main class="flex-1 ml-16 p-4 sm:p-5 min-h-screen bg-slate-950 transition-all duration-300">
+  <!-- Main Content Space -->
+  <main class="flex-1 ml-16 p-4 sm:p-5 min-h-screen transition-all duration-300">
     <div class="w-full space-y-4">
 
-      <!-- Flash Messages -->
+      <!-- Alerts -->
       {% if messages %}
         {% for msg in messages %}
-          <div class="px-4 py-2 rounded-xl text-xs font-semibold border {% if msg.tags == 'error' %}bg-rose-500/10 border-rose-500/30 text-rose-300{% else %}bg-emerald-500/10 border-emerald-500/30 text-emerald-300{% endif %}">
+          <div class="px-4 py-2.5 rounded-xl text-xs font-bold border shadow-sm {% if msg.tags == 'error' %}bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-300{% else %}bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300{% endif %}">
             {{ msg }}
           </div>
         {% endfor %}
@@ -120,6 +178,39 @@
     </div>
   </main>
 
+  <!-- Theme Toggle Logic Script -->
+  <script>
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIconSun = document.getElementById('themeIconSun');
+    const themeIconMoon = document.getElementById('themeIconMoon');
+    const themeToggleText = document.getElementById('themeToggleText');
+
+    function syncThemeUI(isDark) {
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        themeIconSun.classList.remove('hidden');
+        themeIconMoon.classList.add('hidden');
+        themeToggleText.innerText = 'Light Mode';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        themeIconSun.classList.add('hidden');
+        themeIconMoon.classList.remove('hidden');
+        themeToggleText.innerText = 'Dark Mode';
+        localStorage.setItem('theme', 'light');
+      }
+    }
+
+    // Initialize UI on load
+    const isInitiallyDark = document.documentElement.classList.contains('dark');
+    syncThemeUI(isInitiallyDark);
+
+    themeToggleBtn.addEventListener('click', () => {
+      const isCurrentlyDark = document.documentElement.classList.contains('dark');
+      syncThemeUI(!isCurrentlyDark);
+    });
+  </script>
+
   {% block extra_scripts %}{% endblock %}
 </body>
-</html>          
+</html>

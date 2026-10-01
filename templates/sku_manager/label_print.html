@@ -190,11 +190,10 @@
     const brandInput = document.getElementById('brandInput');
     const brandDisplay = document.getElementById('brandDisplay');
 
-    // 1. Load saved brand from URL query (?brand=Name) or localStorage, defaulting to 'TATKAL PICK'
+    // 1. Load the brand from URL query (?brand=Name), database settings, or the default.
+    const dbBrand = "{{ settings.brand_name|escapejs }}";
     const urlParams = new URLSearchParams(window.location.search);
-    const urlBrand = urlParams.get('brand');
-    const storedBrand = localStorage.getItem('tp_custom_brand_name');
-    const activeBrand = urlBrand || storedBrand || 'TATKAL PICK';
+    const activeBrand = urlParams.get('brand') || dbBrand || 'TATKAL PICK';
 
     brandDisplay.innerText = activeBrand;
     brandInput.value = activeBrand;

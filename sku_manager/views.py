@@ -352,6 +352,7 @@ def scan_dispatch(request, sku):
 def sku_print_label(request, pk):
     item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
     dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
+    settings_obj = AppSettings.get_settings()
 
     qr = qrcode.QRCode(version=1, box_size=6, border=1)
     qr.add_data(dispatch_url)
@@ -366,6 +367,7 @@ def sku_print_label(request, pk):
         'item': item,
         'qr_base64': qr_base64,
         'dispatch_url': dispatch_url,
+        'settings': settings_obj,
     })
 
 # Standard actions

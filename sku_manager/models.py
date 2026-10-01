@@ -2,25 +2,6 @@
 from django.db import models
 import re
 
-
-# sku_manager/models.py ke end me add karein
-
-class AppSettings(models.Model):
-    brand_name = models.CharField(max_length=100, default='TATKAL PICK')
-    tagline = models.CharField(max_length=150, blank=True, default='Universal Inventory & Dispatch')
-    currency_symbol = models.CharField(max_length=10, default='₹')
-    low_stock_threshold = models.PositiveIntegerField(default=5)
-    support_contact = models.CharField(max_length=100, blank=True, default='')
-    updated_at = models.DateTimeField(auto_now=True)
-
-    @classmethod
-    def get_settings(cls):
-        obj, _ = cls.objects.get_or_create(id=1)
-        return obj
-
-    def __str__(self):
-        return f"App Settings ({self.brand_name})"
-    
 class Platform(models.Model):
     name = models.CharField(max_length=50, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -31,7 +12,7 @@ class Platform(models.Model):
 class StorageBox(models.Model):
     name = models.CharField(max_length=50, unique=True)
     description = models.CharField(max_length=100, blank=True, default='')
-    color_tag = models.CharField(max_length=20, default='amber')  # blue, amber, emerald, purple, rose
+    color_tag = models.CharField(max_length=20, default='#F59E0B')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -42,48 +23,47 @@ class StorageBox(models.Model):
 
 class JewelrySKU(models.Model):
     CATEGORY_CHOICES = [
-        ('BGL', 'BGL - Bangles / Kadas'),
-        ('BRC', 'BRC - Bracelet'),
-        ('NCK', 'NCK - Necklace / Choker'),
-        ('EAR', 'EAR - Earrings'),
-        ('SET', 'SET - Complete Set / Combo'),
-        ('JHK', 'JHK - Jhumkas'),
-        ('RNG', 'RNG - Rings'),
-        ('PAY', 'PAY - Anklet / Payal'),
-        ('TIK', 'TIK - Maang Tikka'),
+        ('APP', 'APP - Apparel / Clothing'),
+        ('ACC', 'ACC - Accessories'),
+        ('ELC', 'ELC - Electronics / Gadgets'),
+        ('FTW', 'FTW - Footwear'),
+        ('HOM', 'HOM - Home & Living'),
+        ('BEA', 'BEA - Beauty & Care'),
+        ('NCK', 'NCK - Necklace / Chain'),
+        ('BGL', 'BGL - Bangles / Kada'),
+        ('GEN', 'GEN - General Goods'),
     ]
 
     COLOR_CHOICES = [
-        ('GLD', 'GLD - Golden'),
-        ('RBYGRN', 'RBYGRN - Ruby & Emerald Green'),
-        ('GRN', 'GRN - Emerald Green'),
-        ('MRN', 'MRN - Maroon / Ruby'),
-        ('ROSE', 'ROSE - Rose Gold'),
-        ('SLV', 'SLV - Silver / Rhodium'),
-        ('MTC', 'MTC - Multi-Color'),
-        ('WHT', 'WHT - White / Pearl'),
         ('BLK', 'BLK - Black'),
-        ('BLU', 'BLU - Royal Blue'),
-        ('PNK', 'PNK - Baby Pink'),
+        ('WHT', 'WHT - White'),
+        ('BLU', 'BLU - Blue'),
+        ('RED', 'RED - Red'),
+        ('GRN', 'GRN - Green'),
+        ('GLD', 'GLD - Gold'),
+        ('SLV', 'SLV - Silver'),
+        ('BRN', 'BRN - Brown'),
+        ('MTC', 'MTC - Multi-Color'),
     ]
 
-    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='BGL')
-    style = models.CharField(max_length=20, default='ADC')
-    name = models.CharField(max_length=50, default='LOVE')
-    color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='GLD')
-    size = models.CharField(max_length=20, default='2.4')
+    # 1. Product Attributes
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='GEN')
+    style = models.CharField(max_length=20, default='STD')
+    name = models.CharField(max_length=50, default='ITEM')
+    color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='BLK')
+    size = models.CharField(max_length=20, default='FREE')
     number = models.CharField(max_length=10, default='001')
-    
     sku = models.CharField(max_length=100, unique=True, editable=False)
-    is_listed = models.BooleanField(default=False)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
+    is_listed = models.BooleanField(default=False)
+
+    # 2. Aggregated Live Stock & Active Location
+    batch_no = models.CharField(max_length=50, blank=True, default='')
     stock = models.PositiveIntegerField(default=0)
-
-    # Dynamic Physical Storage Link
     storage_box = models.ForeignKey(StorageBox, on_delete=models.SET_NULL, null=True, blank=True, related_name='skus')
-    section_name = models.CharField(max_length=30, default='Section A')
+    section_name = models.CharField(max_length=50, blank=True, default='Section A')
 
-    # Pricing
+    # 3. Base Pricing
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
@@ -100,7 +80,7 @@ class JewelrySKU(models.Model):
     def save(self, *args, **kwargs):
         self.style = self.sanitize(self.style) or 'STD'
         self.name = self.sanitize(self.name) or 'ITEM'
-        self.size = self.size.strip().upper()
+        self.size = str(self.size or 'FREE').strip().upper()
         
         clean_num = self.sanitize(self.number) or '001'
         if clean_num.isdigit() and len(clean_num) < 3:
@@ -111,7 +91,24 @@ class JewelrySKU(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.sku
+        return f"{self.sku} ({self.name})"
+
+class StockBatch(models.Model):
+    """Tracks every batch inwarding entry with location and costs"""
+    sku = models.ForeignKey(JewelrySKU, on_delete=models.CASCADE, related_name='batches')
+    batch_no = models.CharField(max_length=50)
+    quantity = models.PositiveIntegerField(default=1)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    storage_box = models.ForeignKey(StorageBox, on_delete=models.SET_NULL, null=True, blank=True)
+    section_name = models.CharField(max_length=50, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.sku.sku} - Batch {self.batch_no} (+{self.quantity})"
 
 class PlatformPrice(models.Model):
     sku = models.ForeignKey(JewelrySKU, on_delete=models.CASCADE, related_name='platform_prices')
@@ -133,3 +130,15 @@ class DispatchLog(models.Model):
     class Meta:
         ordering = ['-dispatched_at']
 
+class AppSettings(models.Model):
+    brand_name = models.CharField(max_length=100, default='TATKAL PICK')
+    tagline = models.CharField(max_length=150, blank=True, default='Universal Stock & Fast Dispatch')
+    currency_symbol = models.CharField(max_length=10, default='₹')
+    low_stock_threshold = models.PositiveIntegerField(default=5)
+    support_contact = models.CharField(max_length=100, blank=True, default='')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj

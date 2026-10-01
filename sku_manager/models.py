@@ -2,6 +2,25 @@
 from django.db import models
 import re
 
+
+# sku_manager/models.py ke end me add karein
+
+class AppSettings(models.Model):
+    brand_name = models.CharField(max_length=100, default='TATKAL PICK')
+    tagline = models.CharField(max_length=150, blank=True, default='Universal Inventory & Dispatch')
+    currency_symbol = models.CharField(max_length=10, default='₹')
+    low_stock_threshold = models.PositiveIntegerField(default=5)
+    support_contact = models.CharField(max_length=100, blank=True, default='')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj
+
+    def __str__(self):
+        return f"App Settings ({self.brand_name})"
+    
 class Platform(models.Model):
     name = models.CharField(max_length=50, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -114,4 +133,3 @@ class DispatchLog(models.Model):
     class Meta:
         ordering = ['-dispatched_at']
 
-        

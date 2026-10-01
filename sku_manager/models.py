@@ -113,3 +113,5 @@ class DispatchLog(models.Model):
 
     class Meta:
         ordering = ['-dispatched_at']
+
+        

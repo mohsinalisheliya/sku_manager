@@ -581,9 +581,6 @@ def export_csv(request):
         writer.writerow(row)
     return response
 
-# sku_manager/views.py ke andar add karein:
-from .models import AppSettings
-
 @login_required(login_url='login')
 def app_settings_view(request):
     """Database-driven System Settings View"""

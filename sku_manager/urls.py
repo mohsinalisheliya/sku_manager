@@ -27,5 +27,5 @@ urlpatterns = [
     path('dispatch-logs/', views.dispatch_logs, name='dispatch_logs'),
 
     # sku_manager/urls.py me add karein:
-path('settings/', views.app_settings_view, name='app_settings'),
+    path('settings/', views.app_settings_view, name='app_settings'),
 ]

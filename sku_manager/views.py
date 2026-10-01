@@ -4,13 +4,16 @@ import io
 import base64
 import re
 import qrcode
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Q, Count
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
-from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox
+from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox, StockBatch, AppSettings
 
 
 # sku_manager/views.py ke top imports me add karein:
@@ -90,6 +93,122 @@ def get_next_serial():
         return str(int(latest.number) + 1).zfill(3)
     except (ValueError, TypeError):
         return '001'
+
+
+# Separate product registration from stock inwarding.
+@login_required(login_url='login')
+def product_create(request):
+    if request.method == 'POST':
+        try:
+            item = JewelrySKU(
+                category=request.POST.get('category', '').strip() or 'GEN',
+                style=request.POST.get('style', '').strip() or 'STD',
+                name=request.POST.get('name', '').strip() or 'ITEM',
+                color=request.POST.get('color', '').strip() or 'BLK',
+                size=request.POST.get('size', '').strip() or 'FREE',
+                number=request.POST.get('number', '').strip() or '001',
+                image=request.FILES.get('image'),
+                stock=0,
+            )
+            item.save()
+            messages.success(request, f"Product registered with SKU '{item.sku}'. Now inward stock below.")
+            return redirect(f"{reverse('stock_inward')}?sku_id={item.pk}")
+        except Exception as exc:
+            messages.error(request, f"Error saving product: {exc}")
+
+    return render(request, 'sku_manager/product_create.html', {
+        'existing_skus': list(JewelrySKU.objects.values_list('sku', flat=True)),
+        'next_serial': get_next_serial(),
+        'active_page': 'product_create',
+    })
+
+
+@login_required(login_url='login')
+def stock_inward(request):
+    platforms = get_or_seed_platforms()
+    boxes = get_all_boxes()
+    products = JewelrySKU.objects.all().order_by('-created_at')
+    preselected_sku_id = request.GET.get('sku_id', '')
+
+    if request.method == 'POST':
+        item = get_object_or_404(JewelrySKU, pk=request.POST.get('sku_id'))
+        batch_no = request.POST.get('batch_no', '').strip() or f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}"
+        quantity_raw = request.POST.get('quantity', '1').strip()
+
+        try:
+            quantity = int(quantity_raw)
+            if quantity < 1:
+                raise ValueError
+            purchase_price = Decimal(request.POST.get('purchase_price', '0').strip() or '0')
+            selling_price = Decimal(request.POST.get('selling_price', '0').strip() or '0')
+            if purchase_price < 0 or selling_price < 0:
+                raise ValueError
+            platform_prices = {}
+            for platform in platforms:
+                price_raw = request.POST.get(f'platform_price_{platform.id}', '').strip()
+                if price_raw:
+                    price = Decimal(price_raw)
+                    if price < 0:
+                        raise ValueError
+                    platform_prices[platform] = price
+        except (ValueError, InvalidOperation):
+            messages.error(request, 'Enter a whole quantity of at least 1 and valid, non-negative prices.')
+            return redirect(f"{reverse('stock_inward')}?sku_id={item.pk}")
+
+        section_name = request.POST.get('section_name', '').strip() or 'Main Section'
+        storage_box = None
+        if request.POST.get('box_choice_type', 'previous') == 'new':
+            new_box_name = request.POST.get('new_box_name', '').strip()
+            new_box_color = request.POST.get('new_box_color', '#F59E0B').strip().upper()
+            if new_box_name:
+                storage_box, _ = StorageBox.objects.get_or_create(
+                    name=new_box_name,
+                    defaults={'color_tag': new_box_color},
+                )
+        else:
+            previous_box_id = request.POST.get('existing_box_id')
+            if previous_box_id:
+                storage_box = StorageBox.objects.filter(pk=previous_box_id).first()
+
+        with transaction.atomic():
+            item.stock += quantity
+            item.batch_no = batch_no
+            item.purchase_price = purchase_price
+            item.selling_price = selling_price
+            if storage_box:
+                item.storage_box = storage_box
+            item.section_name = section_name
+            item.save()
+
+            StockBatch.objects.create(
+                sku=item,
+                batch_no=batch_no,
+                quantity=quantity,
+                purchase_price=purchase_price,
+                selling_price=selling_price,
+                storage_box=storage_box,
+                section_name=section_name,
+            )
+
+            for platform, price in platform_prices.items():
+                PlatformPrice.objects.update_or_create(
+                    sku=item,
+                    platform=platform,
+                    defaults={'price': price},
+                )
+
+        box_name = storage_box.name if storage_box else 'No Box'
+        messages.success(request, f"Added {quantity} units to '{item.sku}' (Batch: {batch_no}). Location: {box_name} -> {section_name}")
+        return redirect('sku_inventory')
+
+    return render(request, 'sku_manager/stock_inward.html', {
+        'products': products,
+        'platforms': platforms,
+        'boxes': boxes,
+        'preselected_sku_id': preselected_sku_id,
+        'suggested_batch': f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}",
+        'active_page': 'stock_inward',
+    })
 
 # 1. Box Management Page
 @login_required(login_url='login')

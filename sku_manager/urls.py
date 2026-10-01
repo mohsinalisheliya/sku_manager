@@ -25,4 +25,7 @@ urlpatterns = [
     path('print-label/<int:pk>/', views.sku_print_label, name='sku_print_label'),
     path('dispatch/<str:sku>/', views.scan_dispatch, name='scan_dispatch'),
     path('dispatch-logs/', views.dispatch_logs, name='dispatch_logs'),
+
+    # sku_manager/urls.py me add karein:
+path('settings/', views.app_settings_view, name='app_settings'),
 ]

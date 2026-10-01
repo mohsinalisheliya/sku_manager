@@ -174,10 +174,7 @@
   <div class="label-box">
     <img src="data:image/png;base64,{{ qr_base64 }}" class="qr-img" alt="QR">
     <div class="info">
-      <!-- Directly editable on click or via the top input field -->
-      <div class="brand" id="brandDisplay" contenteditable="true" title="Click to edit brand name directly">
-        TATKAL PICK
-      </div>
+      
       <div class="sku">{{ item.sku }}</div>
       <div class="meta">
         📍 {{ item.storage_box.name|default:"Unassigned" }} | {{ item.section_name|default:"Main" }}

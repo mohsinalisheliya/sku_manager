@@ -13,8 +13,9 @@ urlpatterns = [
     path('stock-list/', views.stock_inventory_list, name='stock_inventory_list'),
     path('products/<int:pk>/detail/', views.product_stock_detail, name='product_stock_detail'),
     path('products/<int:pk>/batches/', views.product_batches_view, name='product_batches'),
+    path('products/<int:pk>/batches/add/', views.add_batch_action, name='add_batch_action'),
     path('products/<int:pk>/batches/add/', views.add_batch_action, name='product_batch_add'),
-    path('batches/<int:batch_id>/edit/', views.edit_batch_action, name='edit_batch_action'),
+    path('stock/batch/<int:batch_id>/edit/', views.edit_batch_action, name='edit_batch_action'),
     path('products/<int:pk>/toggle-sales/', views.toggle_product_sales, name='toggle_product_sales'),
     
     # Separate Module 2: Inward Stock & Batches

@@ -1,0 +1,101 @@
+{% extends "sku_manager/base.html" %}
+
+{% block title %}Stock Management: {{ product.name }} - Tatkal Pick{% endblock %}
+
+{% block content %}
+<div class="space-y-5 max-w-7xl mx-auto">
+  <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div><h1 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2"><span class="text-blue-500">📚</span> Stock Management</h1><p class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">{{ product.name }} <span class="text-slate-400">({{ product.sku }})</span></p></div>
+    <a href="{% url 'stock_inventory_list' %}" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold px-4 py-2 rounded-xl text-xs hover:bg-slate-50 transition">← Back to Inventory</a>
+  </header>
+
+  {% if product.stock == 0 %}<div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-semibold flex items-center gap-2.5 shadow-xs"><span class="text-base">⚠️</span><span><strong>Warning:</strong> This product is completely out of stock. Consider adding a new batch below or disabling it from sales.</span></div>{% endif %}
+
+  <section class="bg-blue-600 text-white rounded-t-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-md">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="bg-blue-700/80 border border-blue-400/40 px-3 py-1 rounded-xl text-xs font-bold">📚 {{ batches.count }} Batches</span>
+      <span class="bg-blue-700/80 border border-blue-400/40 px-3 py-1 rounded-xl text-xs font-bold">📦 {{ product.stock }} Units Total</span>
+      {% if product.stock == 0 %}<span class="bg-amber-500 text-slate-950 px-3 py-1 rounded-xl text-xs font-black">⚠️ Out of Stock</span>{% else %}<span class="bg-emerald-500 text-slate-950 px-3 py-1 rounded-xl text-xs font-black">✓ In Stock</span>{% endif %}
+    </div>
+    <div class="flex items-center gap-2.5">
+      <button type="button" onclick="openAddBatchModal()" class="bg-white hover:bg-slate-100 text-blue-700 font-extrabold px-4 py-2 rounded-xl text-xs transition shadow-xs">+ Add Batch</button>
+      <a href="{% url 'toggle_product_sales' product.pk %}" class="{% if product.is_listed %}bg-emerald-400 text-slate-950{% else %}bg-slate-800 text-white{% endif %} font-bold px-3.5 py-2 rounded-xl text-xs transition shadow-xs">{% if product.is_listed %}🟢 Enable Sales{% else %}🔴 Sales Disabled{% endif %}</a>
+    </div>
+  </section>
+
+  <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-b-2xl shadow-xs overflow-hidden">
+    <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+      <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800"><tr><th class="py-3.5 px-4 font-semibold">Batch No</th><th class="py-3.5 px-4 font-semibold">Created Date</th><th class="py-3.5 px-4 font-semibold">Storage Location</th><th class="py-3.5 px-4 font-semibold">Status</th><th class="py-3.5 px-4 font-semibold text-center">Batch Qty</th><th class="py-3.5 px-4 font-semibold">Cost / MRP</th><th class="py-3.5 px-4 text-right font-semibold">Actions</th></tr></thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+        {% for b in batches %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+          <td class="py-3.5 px-4 font-mono font-bold"><span class="text-slate-900 dark:text-white">{{ b.batch_no }}</span>{% if forloop.first %}<span class="ml-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">Latest</span>{% endif %}</td>
+          <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-mono">{{ b.created_at|date:"d M, Y" }}</td>
+          <td class="py-3.5 px-4">{% if b.storage_box %}<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-900">📍 {{ b.storage_box.name }} • {{ b.section_name|default:"Main" }}</span>{% else %}<span class="text-slate-400 italic">Unassigned</span>{% endif %}</td>
+          <td class="py-3.5 px-4 font-mono">{% if b.status == 'active' %}<span class="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900">ACTIVE</span>{% else %}<span class="text-slate-400 font-bold bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-800">DISABLED</span>{% endif %}</td>
+          <td class="py-3.5 px-4 text-center font-mono font-bold text-sm text-slate-900 dark:text-white">{{ b.quantity }}</td>
+          <td class="py-3.5 px-4 font-mono"><div>Cost: ₹{{ b.purchase_price }}</div><div class="text-emerald-600 dark:text-emerald-400 font-bold">MRP: ₹{{ b.selling_price }}</div></td>
+          <td class="py-3.5 px-4 text-right"><button type="button" onclick="openEditBatchModal('{{ b.id }}', '{{ b.batch_no|escapejs }}', '{{ b.quantity }}', '{{ b.purchase_price }}', '{{ b.selling_price }}', '{{ b.storage_box_id|default:'' }}', '{{ b.section_name|escapejs }}', '{{ b.status }}')" class="bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-xs transition">✏️ Edit</button></td>
+        </tr>
+        {% empty %}<tr><td colspan="7" class="text-center py-12 text-slate-400 dark:text-slate-500">No batches created yet. Click “+ Add Batch” above to add your first stock inwarding.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<div id="addBatchModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3"><h2 class="text-base font-extrabold text-slate-900 dark:text-white">📦 Inward New Batch</h2><button type="button" onclick="closeAddBatchModal()" aria-label="Close" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button></div>
+    <div class="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800"><div><span class="block text-[10px] text-slate-400 uppercase font-semibold">Product Name</span><span class="text-xs font-bold text-slate-900 dark:text-white truncate block">{{ product.name }}</span></div><div><span class="block text-[10px] text-slate-400 uppercase font-semibold">SKU / Barcode</span><span class="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 truncate block">{{ product.sku }}</span></div></div>
+    <form method="POST" action="{% url 'add_batch_action' product.pk %}" class="space-y-3.5">{% csrf_token %}
+      <div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Batch Number *</label><input type="text" name="batch_no" value="{{ suggested_batch }}" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400"></div><div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Quantity *</label><input type="number" name="quantity" min="1" value="10" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white"></div></div>
+      <div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase mb-1">Purchase Cost (₹)</label><input type="number" step="0.01" min="0" name="purchase_price" value="{{ product.purchase_price }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-rose-500/30 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white"></div><div><label class="block text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase mb-1">Standard MRP (₹)</label><input type="number" step="0.01" min="0" name="selling_price" value="{{ product.selling_price }}" class="w-full bg-slate-50 dark:bg-slate-950 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white"></div></div>
+      <div><label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">Marketplace Selling Rates</label><div class="grid grid-cols-2 gap-2 max-h-28 overflow-y-auto">{% for pl in platforms %}<label class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2"><span class="block text-[10px] font-bold text-slate-500 uppercase truncate mb-0.5">{{ pl.name }}</span><input type="number" step="0.01" min="0" name="platform_price_{{ pl.id }}" value="{{ platform_prices|get_item:pl.id|default:'' }}" placeholder="0.00" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-amber-600 dark:text-amber-400"></label>{% endfor %}</div></div>
+      <div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Choose Box</label><select name="storage_box" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"><option value="">-- No Box Assigned --</option>{% for box in boxes %}<option value="{{ box.id }}" {% if product.storage_box_id == box.id %}selected{% endif %}>📍 {{ box.name }}</option>{% endfor %}</select></div><div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Compartment / Slot</label><input type="text" name="section_name" value="{{ product.section_name }}" placeholder="e.g. Slot A1" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"></div></div>
+      <div class="flex items-center justify-end gap-2 pt-2"><button type="button" onclick="closeAddBatchModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-500">Cancel</button><button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs uppercase transition">Save Batch & Inward</button></div>
+    </form>
+  </div>
+</div>
+
+<div id="editBatchModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3"><h2 class="text-base font-extrabold text-slate-900 dark:text-white">✏️ Edit Batch Details</h2><button type="button" onclick="closeEditBatchModal()" aria-label="Close" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button></div>
+    <form id="editBatchForm" method="POST" action="" class="space-y-3.5">{% csrf_token %}
+      <div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Batch Number</label><input type="text" name="batch_no" id="edit_batch_no" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400"></div><div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Quantity</label><input type="number" name="quantity" id="edit_quantity" min="0" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white"></div></div>
+      <div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase mb-1">Purchase Cost (₹)</label><input type="number" step="0.01" min="0" name="purchase_price" id="edit_purchase_price" class="w-full bg-slate-50 dark:bg-slate-950 border border-rose-500/30 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white"></div><div><label class="block text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase mb-1">Standard MRP (₹)</label><input type="number" step="0.01" min="0" name="selling_price" id="edit_selling_price" class="w-full bg-slate-50 dark:bg-slate-950 border border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white"></div></div>
+      <div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Storage Box</label><select name="storage_box" id="edit_storage_box" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"><option value="">-- No Box Assigned --</option>{% for box in boxes %}<option value="{{ box.id }}">📍 {{ box.name }}</option>{% endfor %}</select></div><div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Compartment / Slot</label><input type="text" name="section_name" id="edit_section_name" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"></div></div>
+      <div><label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Batch Status</label><select name="status" id="edit_status" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"><option value="active">Active (Counted in Stock)</option><option value="disabled">Disabled (Excluded from Stock)</option></select></div>
+      <div class="flex items-center justify-end gap-2 pt-2"><button type="button" onclick="closeEditBatchModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-500">Cancel</button><button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-2.5 rounded-xl text-xs uppercase transition">Update Batch</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function openAddBatchModal() {
+    document.getElementById('addBatchModal').classList.remove('hidden');
+    document.getElementById('addBatchModal').classList.add('flex');
+  }
+  function closeAddBatchModal() {
+    document.getElementById('addBatchModal').classList.add('hidden');
+    document.getElementById('addBatchModal').classList.remove('flex');
+  }
+  function openEditBatchModal(batchId, batchNo, qty, cost, mrp, boxId, secName, status) {
+    document.getElementById('editBatchForm').action = `/stock/batch/${batchId}/edit/`;
+    document.getElementById('edit_batch_no').value = batchNo;
+    document.getElementById('edit_quantity').value = qty;
+    document.getElementById('edit_purchase_price').value = cost;
+    document.getElementById('edit_selling_price').value = mrp;
+    document.getElementById('edit_storage_box').value = boxId;
+    document.getElementById('edit_section_name').value = secName;
+    document.getElementById('edit_status').value = status;
+    document.getElementById('editBatchModal').classList.remove('hidden');
+    document.getElementById('editBatchModal').classList.add('flex');
+  }
+  function closeEditBatchModal() {
+    document.getElementById('editBatchModal').classList.add('hidden');
+    document.getElementById('editBatchModal').classList.remove('flex');
+  }
+</script>
+{% endblock %}

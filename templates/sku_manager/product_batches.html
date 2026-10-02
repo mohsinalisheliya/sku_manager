@@ -19,7 +19,7 @@
     </div>
     <div class="flex items-center gap-2.5">
       <button type="button" onclick="openAddBatchModal()" class="bg-white hover:bg-slate-100 text-blue-700 font-extrabold px-4 py-2 rounded-xl text-xs transition shadow-xs">+ Add Batch</button>
-      <a href="{% url 'toggle_product_sales' product.pk %}" class="{% if product.is_listed %}bg-emerald-400 text-slate-950{% else %}bg-slate-800 text-white{% endif %} font-bold px-3.5 py-2 rounded-xl text-xs transition shadow-xs">{% if product.is_listed %}🟢 Enable Sales{% else %}🔴 Sales Disabled{% endif %}</a>
+      <a href="{% url 'toggle_product_sales' product.pk %}" class="{% if product.is_listed %}bg-emerald-400 text-slate-950{% else %}bg-slate-800 text-white{% endif %} font-bold px-3.5 py-2 rounded-xl text-xs transition shadow-xs">{% if product.is_listed %}🟢 Sales Enabled{% else %}🔴 Enable Sales{% endif %}</a>
     </div>
   </section>
 
@@ -82,7 +82,7 @@
     document.getElementById('addBatchModal').classList.remove('flex');
   }
   function openEditBatchModal(batchId, batchNo, qty, cost, mrp, boxId, secName, status) {
-    document.getElementById('editBatchForm').action = `/stock/batch/${batchId}/edit/`;
+    document.getElementById('editBatchForm').action = "{% url 'edit_batch_action' 0 %}".replace('/0/', `/${batchId}/`);
     document.getElementById('edit_batch_no').value = batchNo;
     document.getElementById('edit_quantity').value = qty;
     document.getElementById('edit_purchase_price').value = cost;

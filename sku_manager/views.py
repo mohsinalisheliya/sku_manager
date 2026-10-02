@@ -375,7 +375,7 @@ def edit_batch_action(request, batch_id):
     batch.quantity = quantity
     batch.purchase_price = purchase_price
     batch.selling_price = selling_price
-    batch.storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else batch.storage_box
+    batch.storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
     batch.section_name = section_name
     batch.status = status
     batch.save()

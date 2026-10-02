@@ -1,242 +1,284 @@
 {% extends "sku_manager/base.html" %}
 
-{% block title %}Stock & Multi-Channel Catalog - Tatkal Pick{% endblock %}
+{% block title %}Inventory List - Tatkal Pick{% endblock %}
 
 {% block content %}
-<!-- Top Header -->
-<header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-6 gap-4">
-  <div>
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold uppercase tracking-wider mb-2">
-      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-      Multi-Platform Master
+<div class="space-y-6">
+
+  <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2.5">
+        <span class="text-2xl">📦</span>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Inventory List</h1>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">View, sort, and manage your current stock levels.</p>
     </div>
-    <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Inventory & Channel Rates</h1>
-    <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">
-      Total database records: <span class="font-bold text-amber-600 dark:text-amber-400">{{ total_count }}</span> items across all platforms.
-    </p>
-  </div>
-  <div class="flex items-center gap-3">
-    <a href="{% url 'sku_generate' %}" class="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-sm transition shadow-md shadow-amber-500/20">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-      + Create New SKU
-    </a>
-  </div>
-</header>
-
-<!-- Filter & Search Bar -->
-<div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-sm dark:shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-  <div class="flex items-center gap-2 text-xs flex-wrap">
-    <!-- Status Filters -->
-    <a href="{% url 'sku_inventory' %}" 
-       class="px-3 py-1.5 rounded-lg font-semibold transition {% if not filter_status %}bg-amber-500 text-slate-950 font-bold shadow-sm{% else %}bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:text-white border border-slate-200 dark:border-slate-800{% endif %}">
-      All Items
-    </a>
-    <a href="{% url 'sku_inventory' %}?status=listed" 
-       class="px-3 py-1.5 rounded-lg font-semibold transition {% if filter_status == 'listed' %}bg-emerald-500 text-white font-bold shadow-sm{% else %}bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:text-white border border-slate-200 dark:border-slate-800{% endif %}">
-      Listed Only ✓
-    </a>
-    <a href="{% url 'sku_inventory' %}?status=unlisted" 
-       class="px-3 py-1.5 rounded-lg font-semibold transition {% if filter_status == 'unlisted' %}bg-amber-500 text-slate-950 font-bold shadow-sm{% else %}bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:text-white border border-slate-200 dark:border-slate-800{% endif %}">
-      Unlisted
-    </a>
-    <a href="{% url 'sku_inventory' %}?status=out_of_stock" 
-       class="px-3 py-1.5 rounded-lg font-semibold transition {% if filter_status == 'out_of_stock' %}bg-rose-500 text-white font-bold shadow-sm{% else %}bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:text-white border border-slate-200 dark:border-slate-800{% endif %}">
-      Out of Stock (0)
-    </a>
-
-    <!-- Dynamic Box Filter Pills -->
-    <div class="flex items-center gap-1.5 text-xs flex-wrap pl-2 border-l border-slate-200 dark:border-slate-700">
-      <span class="text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase mr-1">Storage Unit:</span>
-      {% for b in boxes %}
-        <a href="{% url 'sku_inventory' %}?box={{ b.id }}"
-           class="px-2.5 py-1 rounded-lg text-xs font-bold transition {% if filter_box == b.id|stringformat:'s' %}bg-amber-500 text-slate-950 shadow-sm{% else %}bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:text-white{% endif %}">
-          {{ b.name }}
-        </a>
-      {% endfor %}
-      {% if filter_box %}
-        <a href="{% url 'sku_inventory' %}" class="text-[11px] text-rose-500 hover:underline px-1 font-semibold">Clear</a>
-      {% endif %}
+    <div class="flex items-center gap-2">
+      <a href="{% url 'sku_scanner' %}" class="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-sm transition">
+        <span>📷 Scan</span>
+      </a>
+      <a href="{% url 'product_create' %}" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition">
+        <span>+ Add Product</span>
+      </a>
     </div>
-  </div>
+  </header>
 
-  <!-- Search Input Form -->
-  <form method="GET" action="{% url 'sku_inventory' %}" class="flex items-center gap-2">
-    {% if filter_status %}
-      <input type="hidden" name="status" value="{{ filter_status }}">
-    {% endif %}
-    {% if filter_box %}
-      <input type="hidden" name="box" value="{{ filter_box }}">
-    {% endif %}
-    <input type="text" name="q" value="{{ search_query }}" placeholder="Search SKU, Name, Box..." 
-      class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 transition w-52 sm:w-64">
-    <button type="submit" class="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 px-3.5 py-2 rounded-xl font-bold transition">
-      Filter
-    </button>
-    {% if search_query %}
-      <a href="{% url 'sku_inventory' %}" class="text-xs text-rose-500 hover:underline px-1 font-semibold">Reset</a>
-    {% endif %}
-  </form>
-</div>
-
-<!-- Table Container Card -->
-<div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 sm:p-6 shadow-sm dark:shadow-xl space-y-4">
-  <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-    <table class="w-full text-left text-sm text-slate-700 dark:text-slate-300">
-      <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-        <tr>
-          <th class="py-3.5 px-3 font-semibold text-center w-14">Listed</th>
-          <th class="py-3.5 px-3 font-semibold w-14">Image</th>
-          <th class="py-3.5 px-4 font-semibold">SKU ID & Specs</th>
-          <th class="py-3.5 px-4 font-semibold">Cost / MRP</th>
-          <th class="py-3.5 px-4 font-semibold">Channel Rates</th>
-          <th class="py-3.5 px-3 text-center font-semibold">Physical Storage</th>
-          <th class="py-3.5 px-3 font-semibold text-center">Stock</th>
-          <th class="py-3.5 px-3 text-right font-semibold">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-normal">
-        {% for item in skus %}
-          <tr class="transition {% if item.is_listed %}bg-emerald-500/5 dark:bg-emerald-950/20 hover:bg-emerald-500/10 dark:hover:bg-emerald-900/30{% else %}hover:bg-slate-50 dark:hover:bg-slate-800/40{% endif %}">
-            
-            <!-- Listed Toggle -->
-            <td class="py-3 px-3 text-center">
-              <a href="{% url 'sku_toggle_listed' item.pk %}" title="Toggle Listed Status"
-                 class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition border {% if item.is_listed %}bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-400 shadow-sm{% else %}bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 border-slate-300 dark:border-slate-700 hover:border-amber-500 hover:text-amber-500{% endif %}">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
-              </a>
-            </td>
-
-            <!-- Product Thumbnail -->
-            <td class="py-3 px-3">
-              <div class="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center">
-                {% if item.image %}
-                  <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
-                {% else %}
-                  <span class="text-[9px] text-slate-400 dark:text-slate-600 font-mono">N/A</span>
-                {% endif %}
-              </div>
-            </td>
-
-            <!-- SKU ID & Attributes -->
-            <td class="py-3 px-4">
-              <div class="font-mono font-bold {% if item.is_listed %}text-emerald-600 dark:text-emerald-400{% else %}text-amber-600 dark:text-amber-400{% endif %} text-xs">
-                {{ item.sku }}
-              </div>
-              <div class="font-semibold text-slate-900 dark:text-white text-xs mt-0.5">{{ item.name }}</div>
-              <div class="text-[10px] text-slate-500 dark:text-slate-400">{{ item.category }} • {{ item.style }} • {{ item.color }} • {{ item.size }}</div>
-            </td>
-
-            <!-- Purchase Cost & MRP -->
-            <td class="py-3 px-4 whitespace-nowrap text-xs font-mono">
-              <div class="text-rose-600 dark:text-rose-400">Cost: <strong class="text-slate-900 dark:text-white">₹{{ item.purchase_price }}</strong></div>
-              <div class="text-emerald-600 dark:text-emerald-400 mt-0.5">MRP: <strong class="text-slate-900 dark:text-white">₹{{ item.selling_price }}</strong></div>
-            </td>
-
-            <!-- Platform Selling Rates (Dynamic Chips) -->
-            <td class="py-3 px-4">
-              <div class="flex flex-wrap gap-1.5 max-w-sm">
-                {% for pp in item.platform_prices.all %}
-                  <div class="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 px-2 py-0.5 rounded text-[11px] font-mono shadow-xs">
-                    <span class="text-slate-500 dark:text-slate-400 font-sans font-semibold">{{ pp.platform.name }}:</span>
-                    <span class="text-amber-600 dark:text-amber-300 font-bold">₹{{ pp.price }}</span>
-                  </div>
-                {% empty %}
-                  <span class="text-[11px] text-slate-400 dark:text-slate-500 italic">No channel rates</span>
-                {% endfor %}
-              </div>
-            </td>
-
-            <!-- Physical Storage Location -->
-            <td class="py-3 px-3 text-center whitespace-nowrap">
-              {% if item.storage_box %}
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold font-mono"
-                     style="background-color: {{ item.storage_box.color_tag }}20; color: {{ item.storage_box.color_tag }}; border: 1px solid {{ item.storage_box.color_tag }}55;">
-                  <span>📍 {{ item.storage_box.name }}</span>
-                  <span class="opacity-40">•</span>
-                  <span class="text-slate-900 dark:text-white font-semibold">{{ item.section_name|default:"Main" }}</span>
-                </div>
-              {% else %}
-                <span class="text-[11px] text-slate-400 dark:text-slate-500 italic">Unassigned</span>
-              {% endif %}
-            </td>
-
-            <!-- Stock Adjuster -->
-            <td class="py-3 px-3 text-center whitespace-nowrap">
-              <div class="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-lg p-1">
-                <a href="{% url 'sku_adjust_stock' item.pk 'dec' %}" title="Decrease Stock by 1"
-                   class="w-5 h-5 flex items-center justify-center rounded bg-white dark:bg-slate-800 hover:bg-rose-500/20 hover:text-rose-500 text-slate-600 dark:text-slate-400 text-xs font-bold transition shadow-xs">−</a>
-                <span class="font-mono font-bold text-xs min-w-[24px] text-center {% if item.stock == 0 %}text-rose-500 dark:text-rose-400{% elif item.stock <= 5 %}text-amber-600 dark:text-amber-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
-                  {{ item.stock }}
-                </span>
-                <a href="{% url 'sku_adjust_stock' item.pk 'inc' %}" title="Increase Stock by 1"
-                   class="w-5 h-5 flex items-center justify-center rounded bg-white dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-600 dark:text-slate-400 text-xs font-bold transition shadow-xs">+</a>
-              </div>
-            </td>
-
-            <!-- Actions -->
-            <td class="py-3 px-3 text-right space-x-1 whitespace-nowrap">
-              <a href="{% url 'sku_print_label' item.pk %}" target="_blank" title="Print Tag Label" 
-                 class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2.5 py-1 rounded-lg transition border border-amber-500/30 font-semibold">
-                🏷️ Tag
-              </a>
-              <a href="{% url 'sku_qr_download' item.pk %}" target="_blank" title="Download QR Code PNG" 
-                 class="text-xs bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2.5 py-1 rounded-lg transition border border-purple-500/30 font-semibold">
-                QR
-              </a>
-              <a href="{% url 'sku_edit' item.pk %}" class="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-lg transition border border-blue-500/30 font-semibold">
-                Edit
-              </a>
-              <a href="{% url 'sku_delete' item.pk %}" onclick="return confirm('Delete {{ item.sku }} permanently?')" 
-                 class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 px-2.5 py-1 rounded-lg transition border border-rose-500/30 font-semibold">
-                Delete
-              </a>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="8" class="text-center py-12 text-slate-400 dark:text-slate-500 text-sm">
-              No inventory records found matching your filter criteria.
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Pagination Toolbar -->
-  {% if skus.has_other_pages %}
-    <div class="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 gap-3">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-4 flex items-center justify-between">
       <div>
-        Showing Page <strong class="text-slate-900 dark:text-white">{{ skus.number }}</strong> of <strong class="text-slate-900 dark:text-white">{{ skus.paginator.num_pages }}</strong>
+        <div class="text-[11px] font-extrabold uppercase tracking-wider text-rose-500">OUT OF STOCK</div>
+        <div class="text-3xl font-black text-rose-600 dark:text-rose-400 mt-1">{{ out_of_stock_count }}</div>
+      </div>
+      <div class="w-10 h-10 rounded-full bg-rose-500/20 text-rose-600 flex items-center justify-center font-bold text-sm">!</div>
+    </div>
+
+    <div class="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-center justify-between">
+      <div>
+        <div class="text-[11px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">LOW STOCK</div>
+        <div class="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">{{ low_stock_count }}</div>
+      </div>
+      <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center font-bold text-sm">⚠️</div>
+    </div>
+
+    <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-4 flex items-center justify-between">
+      <div>
+        <div class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">SUFFICIENT</div>
+        <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{{ sufficient_count }}</div>
+      </div>
+      <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold text-sm">✓</div>
+    </div>
+  </div>
+
+  <form method="GET" class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-3 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+    <div class="relative w-full md:w-96">
+      <span class="absolute left-3.5 top-2.5 text-slate-400">🔍</span>
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search name or barcode/SKU..."
+        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition">
+    </div>
+
+    <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+      <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs">
+        <span class="text-slate-400 font-semibold">Limit:</span>
+        <select name="limit" onchange="this.form.submit()" class="bg-transparent text-slate-800 dark:text-white font-bold focus:outline-none cursor-pointer">
+          <option value="10" {% if limit == 10 %}selected{% endif %}>10</option>
+          <option value="25" {% if limit == 25 %}selected{% endif %}>25</option>
+          <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+        </select>
       </div>
 
+      <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-xs">
+        <select name="sort" onchange="this.form.submit()" class="bg-transparent text-slate-800 dark:text-white font-semibold focus:outline-none cursor-pointer">
+          <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Sort: Newest First</option>
+          <option value="low_to_high" {% if sort_by == 'low_to_high' %}selected{% endif %}>Sort: Low to High Stock</option>
+          <option value="high_to_low" {% if sort_by == 'high_to_low' %}selected{% endif %}>Sort: High to Low Stock</option>
+          <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Sort: Product Name</option>
+        </select>
+      </div>
+
+      <a href="{% url 'sku_scanner' %}" class="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold transition">
+        <span>|||| Scan</span>
+      </a>
+    </div>
+  </form>
+
+  <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+        <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-800">
+          <tr>
+            <th class="py-3.5 px-4 font-semibold">Barcode / SKU</th>
+            <th class="py-3.5 px-4 font-semibold">Product Name</th>
+            <th class="py-3.5 px-4 font-semibold">Current Stock</th>
+            <th class="py-3.5 px-4 font-semibold text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-normal">
+          {% for item in skus %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+              <td class="py-3.5 px-4">
+                <div class="flex items-center gap-2 font-mono text-xs text-slate-600 dark:text-slate-400">
+                  <span class="text-slate-400">|||||</span>
+                  <a href="{% url 'product_stock_detail' item.pk %}" class="font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 hover:underline">
+                    {{ item.sku }}
+                  </a>
+                </div>
+              </td>
+
+              <td class="py-3.5 px-4">
+                <div class="font-bold text-slate-900 dark:text-white text-xs">{{ item.name }}</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">{{ item.category }} • {{ item.color }} • {{ item.size }}</div>
+              </td>
+
+              <td class="py-3.5 px-4">
+                {% if item.stock == 0 %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600">
+                    0 Units
+                  </span>
+                {% elif item.stock <= 5 %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-600">
+                    {{ item.stock }} Units
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-600">
+                    {{ item.stock }} Units
+                  </span>
+                {% endif %}
+              </td>
+
+              <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                <a href="{% url 'product_stock_detail' item.pk %}" 
+                   class="inline-flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-2.5 py-1 rounded-lg transition font-semibold">
+                  <span>📦 Batches ({{ item.batches.count }})</span>
+                </a>
+
+                <a href="{% url 'sku_edit' item.pk %}" 
+                   class="inline-flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-2.5 py-1 rounded-lg transition font-semibold">
+                  ✏️ Edit
+                </a>
+
+                <button type="button" 
+                        onclick="openAddStockModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.sku|escapejs }}', '{{ item.purchase_price }}', '{{ item.selling_price }}', '{{ item.storage_box_id|default:'' }}', '{{ item.section_name|escapejs }}')"
+                        class="inline-flex items-center gap-1 text-xs bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-lg transition font-bold">
+                  + Stock
+                </button>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-12 text-slate-400">
+                No inventory records found. Click "+ Add Product" to create one.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+      <div>
+        Showing <strong class="text-slate-800 dark:text-slate-200">{{ skus.start_index|default:0 }}</strong> to <strong class="text-slate-800 dark:text-slate-200">{{ skus.end_index|default:0 }}</strong> of <strong class="text-slate-800 dark:text-slate-200">{{ total_count }}</strong> entries
+      </div>
       <div class="flex items-center gap-1">
         {% if skus.has_previous %}
-          <a href="?page={{ skus.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_box %}&box={{ filter_box }}{% endif %}" 
-             class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold transition">
-            ← Previous
-          </a>
+          <a href="?page={{ skus.previous_page_number }}&q={{ search_query }}&limit={{ limit }}&sort={{ sort_by }}" class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Prev</a>
         {% endif %}
-
-        {% for i in skus.paginator.page_range %}
-          {% if skus.number == i %}
-            <span class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold shadow-xs">{{ i }}</span>
-          {% elif i > skus.number|add:'-3' and i < skus.number|add:'3' %}
-            <a href="?page={{ i }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_box %}&box={{ filter_box }}{% endif %}" 
-               class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition">
-              {{ i }}
-            </a>
-          {% endif %}
-        {% endfor %}
-
         {% if skus.has_next %}
-          <a href="?page={{ skus.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_box %}&box={{ filter_box }}{% endif %}" 
-             class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold transition">
-            Next →
-          </a>
+          <a href="?page={{ skus.next_page_number }}&q={{ search_query }}&limit={{ limit }}&sort={{ sort_by }}" class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Next</a>
         {% endif %}
       </div>
     </div>
-  {% endif %}
+  </div>
+
 </div>
+
+<div id="addStockModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+      <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+        <span>📦</span> Add Stock & Inward Batch
+      </h3>
+      <button type="button" onclick="closeAddStockModal()" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+    </div>
+
+    <form id="addStockForm" method="POST" action="" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+      <div class="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400">Product Name</label>
+          <div id="modalProdName" class="text-xs font-black text-slate-900 dark:text-white truncate">---</div>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase text-slate-400">SKU / Barcode</label>
+          <div id="modalProdSku" class="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 truncate">---</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Batch Number <span class="text-rose-500">*</span></label>
+          <input type="text" name="batch_no" value="{{ suggested_batch }}" required
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Quantity <span class="text-rose-500">*</span></label>
+          <input type="number" min="1" name="quantity" value="10" required
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase mb-1">Purchase Cost (₹)</label>
+          <input type="number" step="0.01" min="0" name="purchase_price" id="modalPurchaseCost" placeholder="0.00"
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase mb-1">Selling Price (MRP)</label>
+          <input type="number" step="0.01" min="0" name="selling_price" id="modalSellingPrice" placeholder="0.00"
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Choose Configured Box</label>
+          <select name="storage_box" id="modalStorageBox" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:border-blue-500">
+            <option value="">-- No Box --</option>
+            {% for b in boxes %}
+              <option value="{{ b.id }}">📦 {{ b.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Compartment / Slot</label>
+          <input type="text" name="section_name" id="modalSectionName" placeholder="e.g. Sec A1, Slot 4"
+            class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">Marketplace Selling Rates</label>
+        <div class="grid grid-cols-2 gap-2 max-h-28 overflow-y-auto p-1">
+          {% for pl in platforms %}
+            <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2 flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">{{ pl.name }}</span>
+              <input type="number" step="0.01" min="0" name="platform_price_{{ pl.id }}" placeholder="0.00"
+                class="w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 text-xs text-right font-mono font-bold">
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <button type="button" onclick="closeAddStockModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</button>
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl text-xs shadow-md">Confirm & Inward</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function openAddStockModal(id, name, sku, cost, mrp, boxId, sec) {
+    document.getElementById('modalProdName').innerText = name;
+    document.getElementById('modalProdSku').innerText = sku;
+    document.getElementById('modalPurchaseCost').value = cost || '';
+    document.getElementById('modalSellingPrice').value = mrp || '';
+    document.getElementById('modalStorageBox').value = boxId || '';
+    document.getElementById('modalSectionName').value = sec || '';
+
+    document.getElementById('addStockForm').action = `/products/${id}/batches/add/`;
+    document.getElementById('addStockModal').classList.remove('hidden');
+    document.getElementById('addStockModal').classList.add('flex');
+  }
+
+  function closeAddStockModal() {
+    document.getElementById('addStockModal').classList.add('hidden');
+    document.getElementById('addStockModal').classList.remove('flex');
+    document.getElementById('addStockForm').reset();
+  }
+</script>
 {% endblock %}

@@ -10,7 +10,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.urls import reverse
 from .models import JewelrySKU, Platform, PlatformPrice, DispatchLog, StorageBox, StockBatch, AppSettings
@@ -171,7 +171,6 @@ def stock_inward(request):
                 storage_box = StorageBox.objects.filter(pk=previous_box_id).first()
 
         with transaction.atomic():
-            item.stock += quantity
             item.batch_no = batch_no
             item.purchase_price = purchase_price
             item.selling_price = selling_price
@@ -188,7 +187,9 @@ def stock_inward(request):
                 selling_price=selling_price,
                 storage_box=storage_box,
                 section_name=section_name,
+                status='active',
             )
+            item.sync_stock_from_batches()
 
             for platform, price in platform_prices.items():
                 PlatformPrice.objects.update_or_create(
@@ -209,6 +210,131 @@ def stock_inward(request):
         'suggested_batch': f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}",
         'active_page': 'stock_inward',
     })
+
+
+# Compatibility views for the batch-based inventory flow described in the product spec.
+@login_required(login_url='login')
+def stock_inventory_list(request):
+    return sku_inventory(request)
+
+
+@login_required(login_url='login')
+def product_batches_view(request, pk):
+    return product_stock_detail(request, pk)
+
+
+@login_required(login_url='login')
+def add_batch_action(request, pk):
+    item = get_object_or_404(JewelrySKU, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('product_stock_detail', pk=item.pk)
+
+    platforms = get_or_seed_platforms()
+    batch_no = request.POST.get('batch_no', '').strip() or f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}"
+    quantity_raw = request.POST.get('quantity', '1').strip()
+
+    try:
+        quantity = int(quantity_raw)
+        if quantity < 1:
+            raise ValueError
+        purchase_price = Decimal(request.POST.get('purchase_price', '0').strip() or '0')
+        selling_price = Decimal(request.POST.get('selling_price', '0').strip() or '0')
+        if purchase_price < 0 or selling_price < 0:
+            raise ValueError
+    except (ValueError, InvalidOperation):
+        messages.error(request, 'Enter a valid batch quantity and non-negative prices.')
+        return redirect('product_stock_detail', pk=item.pk)
+
+    storage_box = None
+    box_id = request.POST.get('storage_box')
+    if box_id:
+        storage_box = StorageBox.objects.filter(pk=box_id).first()
+
+    section_name = request.POST.get('section_name', '').strip() or item.section_name or 'Main Section'
+    platform_prices = {}
+    for platform in platforms:
+        price_raw = request.POST.get(f'platform_price_{platform.id}', '').strip()
+        if price_raw:
+            price = Decimal(price_raw)
+            if price < 0:
+                raise ValueError
+            platform_prices[platform] = price
+
+    with transaction.atomic():
+        batch = StockBatch.objects.create(
+            sku=item,
+            batch_no=batch_no,
+            quantity=quantity,
+            purchase_price=purchase_price,
+            selling_price=selling_price,
+            storage_box=storage_box,
+            section_name=section_name,
+            status='active',
+        )
+        item.purchase_price = purchase_price
+        item.selling_price = selling_price
+        item.storage_box = storage_box or item.storage_box
+        item.section_name = section_name
+        item.save(update_fields=['purchase_price', 'selling_price', 'storage_box', 'section_name', 'updated_at'])
+        item.sync_stock_from_batches()
+        for platform, price in platform_prices.items():
+            PlatformPrice.objects.update_or_create(sku=item, platform=platform, defaults={'price': price})
+
+    messages.success(request, f"Batch {batch_no} added for {item.sku} with {quantity} units.")
+    return redirect('product_stock_detail', pk=item.pk)
+
+
+@login_required(login_url='login')
+def edit_batch_action(request, batch_id):
+    batch = get_object_or_404(StockBatch, pk=batch_id)
+    product = batch.sku
+
+    if request.method != 'POST':
+        return redirect('product_stock_detail', pk=product.pk)
+
+    batch_no = request.POST.get('batch_no', '').strip() or batch.batch_no
+    quantity_raw = request.POST.get('quantity', str(batch.quantity)).strip()
+    try:
+        quantity = int(quantity_raw)
+        if quantity < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        quantity = batch.quantity
+
+    purchase_price = Decimal(request.POST.get('purchase_price', str(batch.purchase_price)).strip() or str(batch.purchase_price))
+    selling_price = Decimal(request.POST.get('selling_price', str(batch.selling_price)).strip() or str(batch.selling_price))
+    box_id = request.POST.get('storage_box', '').strip()
+    section_name = request.POST.get('section_name', '').strip() or batch.section_name or 'Main Section'
+    status = request.POST.get('status', batch.status)
+
+    batch.batch_no = batch_no
+    batch.quantity = quantity
+    batch.purchase_price = purchase_price
+    batch.selling_price = selling_price
+    batch.storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else batch.storage_box
+    batch.section_name = section_name
+    batch.status = status
+    batch.save()
+
+    for platform in get_or_seed_platforms():
+        price_raw = request.POST.get(f'platform_price_{platform.id}', '').strip()
+        if price_raw:
+            PlatformPrice.objects.update_or_create(sku=product, platform=platform, defaults={'price': Decimal(price_raw)})
+
+    product.sync_stock_from_batches()
+    messages.success(request, f"Batch {batch.batch_no} updated.")
+    return redirect('product_stock_detail', pk=product.pk)
+
+
+@login_required(login_url='login')
+def toggle_product_sales(request, pk):
+    product = get_object_or_404(JewelrySKU, pk=pk)
+    product.is_listed = not product.is_listed
+    product.save(update_fields=['is_listed', 'updated_at'])
+    status_str = 'Enabled' if product.is_listed else 'Disabled'
+    messages.info(request, f"Sales status for {product.name} is now {status_str}.")
+    return redirect('product_stock_detail', pk=product.pk)
 
 # 1. Box Management Page
 @login_required(login_url='login')
@@ -332,12 +458,19 @@ def sku_generate(request):
 @login_required(login_url='login')
 def sku_inventory(request):
     search_query = request.GET.get('q', '').strip()
-    filter_status = request.GET.get('status', '').strip()
-    filter_box = request.GET.get('box', '').strip()
+    limit = request.GET.get('limit', '25')
+    sort_by = request.GET.get('sort', 'newest')
     platforms = get_or_seed_platforms()
     boxes = get_all_boxes()
-    
-    sku_list = JewelrySKU.objects.select_related('storage_box').prefetch_related('platform_prices__platform').all()
+    settings_obj = AppSettings.get_settings()
+
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        limit = 25
+    limit = max(10, min(limit, 50))
+
+    sku_list = JewelrySKU.objects.select_related('storage_box').prefetch_related('platform_prices__platform', 'batches').all()
 
     if search_query:
         sku_list = sku_list.filter(
@@ -347,29 +480,119 @@ def sku_inventory(request):
             Q(section_name__icontains=search_query)
         )
 
-    if filter_box:
-        sku_list = sku_list.filter(storage_box__id=filter_box)
+    sku_list = list(sku_list)
+    for item in sku_list:
+        item.stock = item.batches.filter(status='active').aggregate(total=Sum('quantity'))['total'] or 0
 
-    if filter_status == 'listed':
-        sku_list = sku_list.filter(is_listed=True)
-    elif filter_status == 'unlisted':
-        sku_list = sku_list.filter(is_listed=False)
-    elif filter_status == 'out_of_stock':
-        sku_list = sku_list.filter(stock=0)
+    if sort_by == 'low_to_high':
+        sku_list = sorted(sku_list, key=lambda item: (item.stock, item.name.lower()))
+    elif sort_by == 'high_to_low':
+        sku_list = sorted(sku_list, key=lambda item: (-item.stock, item.name.lower()))
+    elif sort_by == 'name':
+        sku_list = sorted(sku_list, key=lambda item: item.name.lower())
+    else:
+        sku_list = sorted(sku_list, key=lambda item: item.created_at, reverse=True)
 
-    paginator = Paginator(sku_list, 10)
+    total_count = len(sku_list)
+    paginator = Paginator(sku_list, limit)
     skus = paginator.get_page(request.GET.get('page'))
+
+    out_of_stock_count = sum(1 for item in sku_list if item.stock == 0)
+    low_stock_count = sum(1 for item in sku_list if 0 < item.stock <= settings_obj.low_stock_threshold)
+    sufficient_count = sum(1 for item in sku_list if item.stock > settings_obj.low_stock_threshold)
 
     return render(request, 'sku_manager/inventory.html', {
         'skus': skus,
         'platforms': platforms,
         'boxes': boxes,
         'search_query': search_query,
-        'filter_status': filter_status,
-        'filter_box': filter_box,
-        'total_count': sku_list.count(),
+        'limit': limit,
+        'sort_by': sort_by,
+        'total_count': total_count,
+        'out_of_stock_count': out_of_stock_count,
+        'low_stock_count': low_stock_count,
+        'sufficient_count': sufficient_count,
         'active_page': 'inventory',
     })
+
+@login_required(login_url='login')
+def product_stock_detail(request, pk):
+    item = get_object_or_404(JewelrySKU.objects.select_related('storage_box').prefetch_related('batches__storage_box'), pk=pk)
+    batches = item.batches.all().order_by('-created_at')
+    active_units = item.batches.filter(status='active').aggregate(total=Sum('quantity'))['total'] or 0
+    settings_obj = AppSettings.get_settings()
+
+    return render(request, 'sku_manager/product_stock_detail.html', {
+        'item': item,
+        'batches': batches,
+        'active_units': active_units,
+        'total_batch_count': batches.count(),
+        'boxes': get_all_boxes(),
+        'platforms': get_or_seed_platforms(),
+        'low_stock_threshold': settings_obj.low_stock_threshold,
+        'active_page': 'inventory',
+    })
+
+@login_required(login_url='login')
+def add_product_batch(request, pk):
+    item = get_object_or_404(JewelrySKU, pk=pk)
+    if request.method != 'POST':
+        return redirect('sku_inventory')
+
+    platforms = get_or_seed_platforms()
+    batch_no = request.POST.get('batch_no', '').strip() or f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}"
+    quantity_raw = request.POST.get('quantity', '1').strip()
+
+    try:
+        quantity = int(quantity_raw)
+        if quantity < 1:
+            raise ValueError
+        purchase_price = Decimal(request.POST.get('purchase_price', '0').strip() or '0')
+        selling_price = Decimal(request.POST.get('selling_price', '0').strip() or '0')
+        if purchase_price < 0 or selling_price < 0:
+            raise ValueError
+    except (ValueError, InvalidOperation):
+        messages.error(request, 'Enter a valid batch quantity and non-negative prices.')
+        return redirect('product_stock_detail', pk=item.pk)
+
+    storage_box = None
+    box_id = request.POST.get('storage_box')
+    if box_id:
+        storage_box = StorageBox.objects.filter(pk=box_id).first()
+
+    section_name = request.POST.get('section_name', '').strip() or item.section_name or 'Main Section'
+    platform_prices = {}
+    for platform in platforms:
+        price_raw = request.POST.get(f'platform_price_{platform.id}', '').strip()
+        if price_raw:
+            price = Decimal(price_raw)
+            if price < 0:
+                raise ValueError
+            platform_prices[platform] = price
+
+    with transaction.atomic():
+        batch = StockBatch.objects.create(
+            sku=item,
+            batch_no=batch_no,
+            quantity=quantity,
+            purchase_price=purchase_price,
+            selling_price=selling_price,
+            storage_box=storage_box,
+            section_name=section_name,
+            status='active',
+        )
+        item.purchase_price = purchase_price
+        item.selling_price = selling_price
+        item.storage_box = storage_box or item.storage_box
+        item.section_name = section_name
+        item.save()
+        batch.sku = item
+        item.sync_stock_from_batches()
+        for platform, price in platform_prices.items():
+            PlatformPrice.objects.update_or_create(sku=item, platform=platform, defaults={'price': price})
+
+    messages.success(request, f"Batch {batch_no} added for {item.sku} with {quantity} units.")
+    return redirect('product_stock_detail', pk=item.pk)
 
 # 4. SKU Edit
 @login_required(login_url='login')
@@ -403,6 +626,7 @@ def sku_edit(request, pk):
 
         try:
             item.save()
+            item.sync_stock_from_batches()
             for p in platforms:
                 p_val = request.POST.get(f'platform_price_{p.id}', '').strip()
                 if p_val:

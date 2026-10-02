@@ -1,5 +1,6 @@
 # sku_manager/models.py
 from django.db import models
+from django.db.models import Sum
 import re
 
 class Platform(models.Model):
@@ -55,13 +56,13 @@ class JewelrySKU(models.Model):
     number = models.CharField(max_length=10, default='001')
     sku = models.CharField(max_length=100, unique=True, editable=False)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
-    is_listed = models.BooleanField(default=False)
+    is_listed = models.BooleanField(default=True)
 
     # 2. Aggregated Live Stock & Active Location
     batch_no = models.CharField(max_length=50, blank=True, default='')
     stock = models.PositiveIntegerField(default=0)
     storage_box = models.ForeignKey(StorageBox, on_delete=models.SET_NULL, null=True, blank=True, related_name='skus')
-    section_name = models.CharField(max_length=50, blank=True, default='Section A')
+    section_name = models.CharField(max_length=50, blank=True, default='Main Section')
 
     # 3. Base Pricing
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -75,13 +76,31 @@ class JewelrySKU(models.Model):
 
     @staticmethod
     def sanitize(value):
-        return re.sub(r'[^A-Za-z0-9]', '', str(value or '')).upper()
+        value = str(value or '').strip()
+        return re.sub(r'[^A-Za-z0-9]', '', value).upper()
+
+    def sync_stock_from_batches(self):
+        """Calculates the live stock from active batches and refreshes the latest cached metadata."""
+        total = self.batches.filter(status='active').aggregate(total=Sum('quantity'))['total'] or 0
+        self.stock = max(0, int(total))
+
+        latest_batch = self.batches.filter(status='active').order_by('-created_at').first()
+        if latest_batch:
+            self.purchase_price = latest_batch.purchase_price
+            self.selling_price = latest_batch.selling_price
+            self.batch_no = latest_batch.batch_no
+            if latest_batch.storage_box:
+                self.storage_box = latest_batch.storage_box
+            if latest_batch.section_name:
+                self.section_name = latest_batch.section_name
+
+        self.save()
 
     def save(self, *args, **kwargs):
         self.style = self.sanitize(self.style) or 'STD'
         self.name = self.sanitize(self.name) or 'ITEM'
         self.size = str(self.size or 'FREE').strip().upper()
-        
+
         clean_num = self.sanitize(self.number) or '001'
         if clean_num.isdigit() and len(clean_num) < 3:
             clean_num = clean_num.zfill(3)
@@ -94,7 +113,12 @@ class JewelrySKU(models.Model):
         return f"{self.sku} ({self.name})"
 
 class StockBatch(models.Model):
-    """Tracks every batch inwarding entry with location and costs"""
+    """Tracks every batch inwarding entry with location and costs."""
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('disabled', 'Disabled'),
+    ]
+
     sku = models.ForeignKey(JewelrySKU, on_delete=models.CASCADE, related_name='batches')
     batch_no = models.CharField(max_length=50)
     quantity = models.PositiveIntegerField(default=1)
@@ -102,7 +126,9 @@ class StockBatch(models.Model):
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     storage_box = models.ForeignKey(StorageBox, on_delete=models.SET_NULL, null=True, blank=True)
     section_name = models.CharField(max_length=50, blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']

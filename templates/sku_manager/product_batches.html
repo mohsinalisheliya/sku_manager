@@ -35,7 +35,7 @@
           <td class="py-3.5 px-4 font-mono">{% if b.status == 'active' %}<span class="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900">ACTIVE</span>{% else %}<span class="text-slate-400 font-bold bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-800">DISABLED</span>{% endif %}</td>
           <td class="py-3.5 px-4 text-center font-mono font-bold text-sm text-slate-900 dark:text-white">{{ b.quantity }}</td>
           <td class="py-3.5 px-4 font-mono"><div>Cost: ₹{{ b.purchase_price }}</div><div class="text-emerald-600 dark:text-emerald-400 font-bold">MRP: ₹{{ b.selling_price }}</div></td>
-          <td class="py-3.5 px-4 text-right"><button type="button" onclick="openEditBatchModal('{{ b.id }}', '{{ b.batch_no|escapejs }}', '{{ b.quantity }}', '{{ b.purchase_price }}', '{{ b.selling_price }}', '{{ b.storage_box_id|default:'' }}', '{{ b.section_name|escapejs }}', '{{ b.status }}')" class="bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-xs transition">✏️ Edit</button></td>
+          <td class="py-3.5 px-4 text-right"><button type="button" onclick="openEditBatchModal(this)" data-batch-id="{{ b.id }}" data-batch-no="{{ b.batch_no }}" data-quantity="{{ b.quantity }}" data-cost="{{ b.purchase_price }}" data-mrp="{{ b.selling_price }}" data-box-id="{{ b.storage_box_id|default:'' }}" data-section="{{ b.section_name }}" data-status="{{ b.status }}" class="bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-xs transition">✏️ Edit</button></td>
         </tr>
         {% empty %}<tr><td colspan="7" class="text-center py-12 text-slate-400 dark:text-slate-500">No batches created yet. Click “+ Add Batch” above to add your first stock inwarding.</td></tr>{% endfor %}
       </tbody>
@@ -81,15 +81,16 @@
     document.getElementById('addBatchModal').classList.add('hidden');
     document.getElementById('addBatchModal').classList.remove('flex');
   }
-  function openEditBatchModal(batchId, batchNo, qty, cost, mrp, boxId, secName, status) {
-    document.getElementById('editBatchForm').action = "{% url 'edit_batch_action' 0 %}".replace('/0/', `/${batchId}/`);
-    document.getElementById('edit_batch_no').value = batchNo;
-    document.getElementById('edit_quantity').value = qty;
-    document.getElementById('edit_purchase_price').value = cost;
-    document.getElementById('edit_selling_price').value = mrp;
-    document.getElementById('edit_storage_box').value = boxId;
-    document.getElementById('edit_section_name').value = secName;
-    document.getElementById('edit_status').value = status;
+  function openEditBatchModal(button) {
+    const batch = button.dataset;
+    document.getElementById('editBatchForm').action = "{% url 'edit_batch_action' 0 %}".replace('/0/', `/${batch.batchId}/`);
+    document.getElementById('edit_batch_no').value = batch.batchNo;
+    document.getElementById('edit_quantity').value = batch.quantity;
+    document.getElementById('edit_purchase_price').value = batch.cost;
+    document.getElementById('edit_selling_price').value = batch.mrp;
+    document.getElementById('edit_storage_box').value = batch.boxId;
+    document.getElementById('edit_section_name').value = batch.section;
+    document.getElementById('edit_status').value = batch.status;
     document.getElementById('editBatchModal').classList.remove('hidden');
     document.getElementById('editBatchModal').classList.add('flex');
   }

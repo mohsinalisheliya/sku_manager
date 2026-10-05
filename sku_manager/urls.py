@@ -24,7 +24,6 @@ urlpatterns = [
     # Existing Catalog & Operations
     path('', views.sku_inventory, name='sku_inventory'),
     path('inventory/', views.sku_inventory, name='sku_inventory'),
-    path('generate-legacy/', views.sku_generate, name='sku_generate'),
     path('edit/<int:pk>/', views.sku_edit, name='sku_edit'),
     path('delete/<int:pk>/', views.sku_delete, name='sku_delete'),
     path('toggle-listed/<int:pk>/', views.toggle_listed, name='sku_toggle_listed'),

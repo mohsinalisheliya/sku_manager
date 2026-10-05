@@ -1,0 +1,41 @@
+{% extends "sku_manager/base.html" %}
+
+{% block title %}Edit {{ product.name }} - Tatkal Pick{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-5">
+  <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+    <div>
+      <p class="text-xs font-bold uppercase text-amber-600 dark:text-amber-400">Product Master</p>
+      <h1 class="text-2xl font-black text-slate-900 dark:text-white">Edit Product Details</h1>
+      <p class="mt-1 text-xs font-mono text-slate-500">{{ product.sku }}</p>
+    </div>
+    <a href="{% url 'product_master' %}" class="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-2 text-xs font-bold">Back to Products</a>
+  </header>
+
+  <form method="POST" enctype="multipart/form-data" class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 sm:p-6 space-y-4">
+    {% csrf_token %}
+    <div>
+      <label for="product-name" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Product name *</label>
+      <input id="product-name" name="name" required maxlength="100" value="{{ product.name }}" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5 text-sm">
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div><label for="product-category" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Category</label><input id="product-category" name="category" maxlength="50" value="{{ product.category }}" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5 text-sm"></div>
+      <div><label for="product-style" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Style</label><input id="product-style" name="style" maxlength="50" value="{{ product.style }}" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5 text-sm"></div>
+      <div><label for="design-model" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Design / model</label><input id="design-model" name="design_model" maxlength="50" value="{{ product.design_model }}" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5 text-sm"></div>
+      <div><label for="product-size" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Size</label><input id="product-size" name="size" maxlength="30" value="{{ product.size }}" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5 text-sm"></div>
+      <div><label for="product-color" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Color</label><input id="product-color" name="color" maxlength="30" value="{{ product.color }}" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2.5 text-sm"></div>
+    </div>
+    <div>
+      <label for="product-image" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">Product image</label>
+      <div class="flex items-center gap-4">
+        {% if product.image %}<img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-16 h-16 rounded-xl object-cover">{% endif %}
+        <input id="product-image" type="file" name="image" accept="image/*" class="text-xs text-slate-500">
+      </div>
+    </div>
+    <div class="flex justify-end border-t border-slate-200 dark:border-slate-700 pt-4">
+      <button type="submit" class="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-black text-slate-950">Save Product Details</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -264,41 +264,84 @@ def stock_inventory_list(request):
 
 
 @login_required(login_url='login')
-def stock_edit(request, pk):
-    item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
+def stock_manage_view(request, pk=None):
+    is_new = pk is None
+    item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk) if not is_new else None
     platforms = get_or_seed_platforms()
     boxes = get_all_boxes()
 
     if request.method == 'POST':
-        stock_mode = request.POST.get('stock_mode', 'set')
-        add_units = request.POST.get('add_units', '0').strip()
-        set_units = request.POST.get('stock_units', '0').strip()
-
-        try:
-            if stock_mode == 'add':
-                inward = int(add_units) if add_units else 0
-                item.stock = max(0, item.stock + inward)
-            else:
-                item.stock = max(0, int(set_units) if set_units else 0)
-        except (TypeError, ValueError):
-            item.stock = 0
-
-        try:
-            p_cost = Decimal(request.POST.get('purchase_price', '0').strip() or '0')
-            s_price = Decimal(request.POST.get('selling_price', '0').strip() or '0')
-            if p_cost < 0 or s_price < 0:
-                raise ValueError
-            item.purchase_price = p_cost
-            item.selling_price = s_price
-        except (InvalidOperation, ValueError):
-            messages.error(request, 'Enter valid, non-negative pricing values.')
-            return redirect('stock_edit', pk=item.pk)
+        name = request.POST.get('name', '').strip()
+        category = request.POST.get('category', 'GEN').strip() or 'GEN'
+        style = request.POST.get('style', 'STD').strip() or 'STD'
+        color = request.POST.get('color', 'BLK').strip() or 'BLK'
+        size = request.POST.get('size', 'FREE').strip() or 'FREE'
+        number = request.POST.get('number', '001').strip() or '001'
 
         box_id = request.POST.get('storage_box', '').strip()
-        item.storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
-        item.section_name = request.POST.get('section_name', '').strip() or 'Main Section'
-        item.is_listed = 'is_listed' in request.POST
-        item.save()
+        storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
+        section_name = request.POST.get('section_name', 'Main Section').strip() or 'Main Section'
+        is_listed = 'is_listed' in request.POST
+
+        stock_action = request.POST.get('stock_action', 'set')
+        inward_qty_raw = request.POST.get('inward_qty', '').strip()
+        exact_stock_raw = request.POST.get('stock_units', '').strip()
+
+        try:
+            inward_qty = int(inward_qty_raw) if inward_qty_raw.isdigit() else 0
+            exact_stock = int(exact_stock_raw) if exact_stock_raw.isdigit() else 0
+        except ValueError:
+            inward_qty = 0
+            exact_stock = 0
+
+        try:
+            purchase_price = Decimal(request.POST.get('purchase_price', '0').strip() or '0')
+            selling_price = Decimal(request.POST.get('selling_price', '0').strip() or '0')
+            if purchase_price < 0 or selling_price < 0:
+                raise ValueError
+        except (InvalidOperation, ValueError):
+            messages.error(request, 'Enter valid, non-negative product pricing values.')
+            return redirect('stock_inventory_list')
+
+        if is_new:
+            item = JewelrySKU(
+                name=name or 'NEW ITEM',
+                category=category,
+                style=style,
+                color=color,
+                size=size,
+                number=number,
+                stock=inward_qty if stock_action == 'add' else exact_stock,
+                purchase_price=purchase_price,
+                selling_price=selling_price,
+                storage_box=storage_box,
+                section_name=section_name,
+                is_listed=is_listed,
+            )
+            if request.FILES.get('image'):
+                item.image = request.FILES['image']
+            item.save()
+            message_text = f"✓ Product created with SKU '{item.sku}' and {item.stock} stock units!"
+        else:
+            item.name = name or item.name
+            item.category = category
+            item.style = style
+            item.color = color
+            item.size = size
+            item.number = number
+            item.storage_box = storage_box
+            item.section_name = section_name
+            item.is_listed = is_listed
+            item.purchase_price = purchase_price
+            item.selling_price = selling_price
+            if request.FILES.get('image'):
+                item.image = request.FILES['image']
+            if stock_action == 'add':
+                item.stock = max(0, item.stock + inward_qty)
+            else:
+                item.stock = max(0, exact_stock)
+            item.save()
+            message_text = f"✓ Updated '{item.sku}'! Live Stock: {item.stock} units."
 
         for platform in platforms:
             p_val = request.POST.get(f'platform_price_{platform.id}', '').strip()
@@ -307,27 +350,29 @@ def stock_edit(request, pk):
                     price = Decimal(p_val)
                     if price < 0:
                         raise ValueError
-                    PlatformPrice.objects.update_or_create(
-                        sku=item,
-                        platform=platform,
-                        defaults={'price': price},
-                    )
+                    PlatformPrice.objects.update_or_create(sku=item, platform=platform, defaults={'price': price})
                 except (InvalidOperation, ValueError):
                     continue
             else:
                 PlatformPrice.objects.filter(sku=item, platform=platform).delete()
 
-        messages.success(request, f"✓ Stock & rates updated for '{item.sku}'! Current Stock: {item.stock} Units")
+        messages.success(request, message_text)
         return redirect('stock_inventory_list')
 
-    current_prices = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
+    current_prices = {pp.platform_id: pp.price for pp in item.platform_prices.all()} if item else {}
     return render(request, 'sku_manager/stock_edit.html', {
         'item': item,
+        'is_new': is_new,
         'platforms': platforms,
         'boxes': boxes,
         'current_prices': current_prices,
         'active_page': 'stock_list',
     })
+
+
+@login_required(login_url='login')
+def stock_edit(request, pk):
+    return stock_manage_view(request, pk=pk)
 
 
 @login_required(login_url='login')

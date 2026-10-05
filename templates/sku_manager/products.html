@@ -1,85 +1,168 @@
 {% extends "sku_manager/base.html" %}
 
-{% block title %}Products - Tatkal Pick{% endblock %}
+{% block title %}Add Products & Catalog - Tatkal Pick{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-  <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+<div class="space-y-8 max-w-6xl mx-auto">
+
+  <!-- Top Bar -->
+  <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
     <div>
-      <p class="text-xs font-bold uppercase text-amber-600 dark:text-amber-400">Catalog</p>
       <h1 class="text-2xl font-black text-slate-900 dark:text-white">Product Master</h1>
-      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Register products and maintain their catalog details.</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Add products and manage catalog specifications.</p>
     </div>
-    <a href="{% url 'inventory_list' %}" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-xs font-bold">View Inventory</a>
+    <a href="#productListingSection" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition">
+      ↓ View Product Listing ({{ products.count }})
+    </a>
   </header>
 
-  <section class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-    <form method="POST" enctype="multipart/form-data" class="xl:col-span-4 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 space-y-4">
-      {% csrf_token %}
-      <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Add Product</h2>
-      <div>
-        <label for="product-name" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Product name *</label>
-        <input id="product-name" name="name" required maxlength="100" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm" placeholder="Product name">
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label for="product-category" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Category</label>
-          <input id="product-category" name="category" maxlength="50" value="General" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm">
-        </div>
-        <div>
-          <label for="product-style" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Style</label>
-          <input id="product-style" name="style" maxlength="50" value="Standard" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm">
-        </div>
-      </div>
-      <div>
-        <label for="design-model" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Design / model</label>
-        <input id="design-model" name="design_model" maxlength="50" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm" placeholder="Optional model identifier">
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label for="product-size" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Size</label>
-          <input id="product-size" name="size" maxlength="30" value="Free Size" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm">
-        </div>
-        <div>
-          <label for="product-color" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Color</label>
-          <input id="product-color" name="color" maxlength="30" value="Black" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm">
-        </div>
-      </div>
-      <div>
-        <label for="product-image" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Product image</label>
-        <input id="product-image" type="file" name="image" accept="image/*" class="w-full text-xs text-slate-500">
-      </div>
-      <button class="w-full rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2.5 text-xs font-black text-slate-950" type="submit">Create Product</button>
-    </form>
+  <!-- FORM: Add Products -->
+  <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-3xl p-6 shadow-sm">
+    <h2 class="text-base font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+      <span>✨</span> Add Products
+    </h2>
 
-    <section class="xl:col-span-8 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-        <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Catalog Products</h2>
-        <span class="text-xs text-slate-500">{{ products|length }} products</span>
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Product Name <span class="text-rose-500">*</span></label>
+          <input type="text" name="name" id="f_name" required placeholder="e.g. Kurkure, Cotton Tee, PVD Ring"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Product Category</label>
+          <input type="text" name="category" id="f_category" placeholder="e.g. Snacks, Apparel, Jewellery"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Product Style</label>
+          <input type="text" name="style" id="f_style" placeholder="e.g. Casual, Spicy, Slim"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Product Design / Model</label>
+          <input type="text" name="design_model" placeholder="e.g. Puffcorn, Model-X, D-102"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Product Size</label>
+          <input type="text" name="size" placeholder="e.g. Standard, 100g, M, L, Free"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Product Color</label>
+          <input type="text" name="color" id="f_color" placeholder="e.g. Red, Black, Gold, Blue"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+        </div>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-50 dark:bg-slate-900/70 text-[10px] uppercase text-slate-500">
-            <tr><th class="px-4 py-3">Product</th><th class="px-4 py-3">SKU</th><th class="px-4 py-3">Attributes</th><th class="px-4 py-3 text-right">Actions</th></tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-            {% for product in products %}
-              <tr>
-                <td class="px-4 py-3"><div class="font-bold text-slate-900 dark:text-white">{{ product.name }}</div><div class="text-slate-500">{{ product.category }}</div></td>
-                <td class="px-4 py-3 font-mono text-amber-600 dark:text-amber-400">{{ product.sku }}</td>
-                <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ product.style }} / {{ product.design_model|default:"-" }} / {{ product.color }} / {{ product.size }}</td>
-                <td class="px-4 py-3 text-right whitespace-nowrap">
-                  <a href="{% url 'product_edit_details' product.pk %}" class="font-bold text-blue-600 dark:text-blue-400 hover:underline">Edit details</a>
-                  <a href="{% url 'stock_action' product.pk %}" class="ml-3 font-bold text-emerald-600 dark:text-emerald-400 hover:underline">Stock & rates</a>
-                </td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="4" class="px-4 py-12 text-center text-slate-500">No products registered yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+
+      <!-- Image & Auto SKU Banner -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center pt-2">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Product Image</label>
+          <input type="file" name="image" accept="image/*"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-slate-950 cursor-pointer">
+        </div>
+
+        <!-- Live Compiled SKU Preview -->
+        <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Product SKU ID (Auto Gen by System)</span>
+          <span id="skuPreview" class="font-mono text-sm font-black text-amber-600 dark:text-amber-400">---</span>
+        </div>
       </div>
-    </section>
-  </section>
+
+      <div class="flex justify-end pt-2">
+        <button type="submit" class="bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">
+          Save Product
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- TABLE: Product Listing Table -->
+  <div id="productListingSection" class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-3xl p-6 shadow-sm space-y-4">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
+      <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+        <span>📋</span> Product Listing
+      </h2>
+      <span class="text-xs text-slate-500 font-bold font-mono">{{ products.count }} Items Registered</span>
+    </div>
+
+    <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+        <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
+          <tr>
+            <th class="py-3 px-4 w-16">Image</th>
+            <th class="py-3 px-4">SKU ID</th>
+            <th class="py-3 px-4">Name</th>
+            <th class="py-3 px-4">Category</th>
+            <th class="py-3 px-4 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+          {% for p in products %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
+              <td class="py-3 px-4">
+                <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-800">
+                  {% if p.image %}
+                    <img src="{{ p.image.url }}" class="w-full h-full object-cover">
+                  {% else %}
+                    <span class="text-[9px] text-slate-400 font-mono">N/A</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="py-3 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
+                {{ p.sku }}
+              </td>
+              <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">
+                {{ p.name }}
+              </td>
+              <td class="py-3 px-4 text-slate-600 dark:text-slate-400">
+                {{ p.category }}
+              </td>
+              <td class="py-3 px-4 text-right">
+                <a href="{% url 'product_edit_details' p.pk %}" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-lg font-bold border border-slate-200 dark:border-slate-700 transition">
+                  ✏️ Edit Detail Only
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-center py-8 text-slate-400">No products added yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const f_name = document.getElementById('f_name');
+  const f_category = document.getElementById('f_category');
+  const f_style = document.getElementById('f_style');
+  const f_color = document.getElementById('f_color');
+  const skuPreview = document.getElementById('skuPreview');
+
+  function updateSKU() {
+    const c = (f_category.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 3)) || 'GEN';
+    const s = (f_style.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 3)) || 'STD';
+    const n = (f_name.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4)) || 'ITEM';
+    const cl = (f_color.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 3)) || 'BLK';
+    skuPreview.innerText = `${c}-${s}-${n}-${cl}-AUTO`;
+  }
+
+  [f_name, f_category, f_style, f_color].forEach(el => el.addEventListener('input', updateSKU));
+  updateSKU();
+</script>
 {% endblock %}

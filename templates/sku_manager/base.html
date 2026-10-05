@@ -45,9 +45,8 @@
     
     <div class="space-y-6">
       <!-- Universal Tatkal Pick Logo -->
-      <a href="" class="flex items-center gap-3 px-1 py-1">
+      <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-1 py-1">
         <div class="w-10 h-10 min-w-[40px] rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950">
-          <!-- Fast Speed-Box SVG Logo -->
           <svg class="w-6 h-6 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
             <path d="m3.3 7 8.7 5 8.7-5"/>
@@ -63,7 +62,21 @@
 
       <!-- Main Navigation Links -->
       <nav class="space-y-1.5">
-        <!-- Live Camera Scanner -->
+        <!-- 1. Inventory & Stock (Part 2) -->
+        <a href="{% url 'inventory_list' %}" title="Inventory"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'inventory' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
+          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zm0 4h16M9 4v4m6-4v4"></path></svg>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-bold">Inventory</span>
+        </a>
+
+        <!-- 2. Product Master & Listing (Part 1) -->
+        <a href="{% url 'product_master' %}" title="Add Products & Catalog"
+          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'products' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
+          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-bold">Products</span>
+        </a>
+
+        <!-- 3. Live Camera Scanner -->
         <a href="{% url 'sku_scanner' %}" title="Camera Scanner"
           class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'scanner' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-amber-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,49 +86,28 @@
           <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-bold">Fast Scanner</span>
         </a>
 
-        <!-- Add Product Master -->
-        <a href="{% url 'product_master' %}" title="Product Master"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'products' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
-          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Products</span>
-        </a>
-
-        <!-- Inward Stock & Batch -->
-        <a href="{% url 'stock_inward' %}" title="Inward Stock & Batch"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'stock_inward' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-emerald-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
-          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"></path></svg>
-          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-bold">Inward Stock</span>
-        </a>
-  
-        <!-- Inventory List -->
-        <a href="{% url 'inventory_list' %}" title="Inventory Stock List"
-          class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'stock_list' or active_page == 'inventory' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
-          <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zm0 4h16M9 4v4m6-4v4"></path></svg>
-          <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Inventory List</span>
-        </a>
-
-        <!-- Storage Boxes -->
+        <!-- 4. Storage Boxes -->
         <a href="{% url 'box_manager' %}" title="Storage Boxes"
           class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'boxes' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
           <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Storage Units</span>
         </a>
 
-        <!-- Dispatch Logs -->
+        <!-- 5. Dispatch Audit Logs -->
         <a href="{% url 'dispatch_logs' %}" title="Dispatch Logs"
           class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'dispatch_logs' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
           <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Dispatch Audit</span>
         </a>
 
-        <!-- Marketplace Channels -->
+        <!-- 6. Marketplace Channels -->
         <a href="{% url 'platform_manager' %}" title="Marketplace Channels"
           class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition {% if active_page == 'platforms' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
           <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs">Marketplaces</span>
         </a>
 
-        <!-- Export CSV -->
+        <!-- 7. Export CSV -->
         <a href="{% url 'sku_export_csv' %}" title="Export CSV"
           class="flex items-center gap-3.5 px-3 py-2.5 rounded-xl transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white">
           <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -127,24 +119,22 @@
     <!-- Bottom Controls: Settings, Theme Toggle & User Info -->
     <div class="space-y-1.5 pt-3 border-t border-slate-200 dark:border-slate-800">
 
-      <!-- System Settings Link (Moved to Bottom) -->
+      <!-- Settings -->
       <a href="{% url 'app_settings' %}" title="System Settings"
         class="flex items-center gap-3.5 px-3 py-2 rounded-xl transition {% if active_page == 'settings' %}bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white{% endif %}">
         <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31.826-2.37 2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
         </svg>
         <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap text-xs font-semibold">Settings</span>
       </a>
       
-      <!-- Theme Switcher Button -->
+      <!-- Theme Switcher -->
       <button id="themeToggleBtn" type="button" title="Switch Theme"
         class="w-full flex items-center gap-3.5 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-        <!-- Sun Icon (for Dark Mode) -->
         <svg id="themeIconSun" class="w-5 h-5 min-w-[20px] hidden text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
         </svg>
-        <!-- Moon Icon (for Light Mode) -->
         <svg id="themeIconMoon" class="w-5 h-5 min-w-[20px] text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
         </svg>
@@ -154,7 +144,7 @@
       </button>
 
       {% if request.user.is_authenticated %}
-      <!-- Authenticated User Profile -->
+      <!-- Authenticated Profile -->
       <div class="flex items-center gap-3 px-1.5 pt-1 overflow-hidden">
         <div class="w-8 h-8 min-w-[32px] rounded-lg bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 flex items-center justify-center font-bold text-amber-600 dark:text-amber-400 text-xs">
           {{ request.user.username|slice:":1"|upper }}
@@ -165,7 +155,7 @@
         </div>
       </div>
 
-      <!-- Logout Button -->
+      <!-- Logout -->
       <a href="{% url 'logout' %}" title="Log Out"
         class="flex items-center gap-3 px-3 py-1.5 rounded-xl text-slate-500 hover:bg-rose-500/10 hover:text-rose-500 transition">
         <svg class="w-5 h-5 min-w-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,7 +208,6 @@
       }
     }
 
-    // Initialize UI on load
     const isInitiallyDark = document.documentElement.classList.contains('dark');
     syncThemeUI(isInitiallyDark);
 

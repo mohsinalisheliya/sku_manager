@@ -1,4 +1,3 @@
-
 from django.urls import path
 from . import views
 
@@ -16,12 +15,17 @@ urlpatterns = [
     path('inventory/', views.inventory_list, name='inventory_list'),
     path('inventory/stock/<int:pk>/', views.stock_action, name='stock_action'),
 
-    # Utility Views
+    # Storage & Platforms
     path('boxes/', views.box_manager, name='box_manager'),
     path('boxes/delete/<int:pk>/', views.box_delete, name='box_delete'),
     path('platforms/', views.platform_manager, name='platform_manager'),
     path('platforms/delete/<int:pk>/', views.platform_delete, name='platform_delete'),
+
+    # Settings & Export CSV (Fixes NoReverseMatch)
     path('settings/', views.app_settings_view, name='app_settings'),
+    path('export-csv/', views.export_csv, name='sku_export_csv'),
+
+    # Scanner & Dispatch
     path('scanner/', views.sku_scanner, name='sku_scanner'),
     path('print-label/<int:pk>/', views.sku_print_label, name='sku_print_label'),
     path('dispatch/<str:sku>/', views.scan_dispatch, name='scan_dispatch'),

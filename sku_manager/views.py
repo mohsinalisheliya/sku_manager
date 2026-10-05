@@ -86,13 +86,15 @@ def get_all_boxes():
     return StorageBox.objects.all().order_by('name')
 
 def get_next_serial():
-    latest = JewelrySKU.objects.order_by('-id').first()
-    if not latest:
+    last_item = JewelrySKU.objects.order_by('-id').first()
+    if not last_item:
         return '001'
     try:
-        return str(int(latest.number) + 1).zfill(3)
-    except (ValueError, TypeError):
-        return '001'
+        parts = last_item.sku.split('-')
+        last_num = int(parts[-1])
+        return str(last_num + 1).zfill(3)
+    except (ValueError, IndexError):
+        return str(last_item.id + 1).zfill(3)
 
 
 # Separate product registration from stock inwarding.
@@ -381,25 +383,39 @@ def stock_edit(request, pk):
 @login_required(login_url='login')
 def product_master(request):
     if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
+        category = request.POST.get('category', 'GEN').strip().upper()
+        style = request.POST.get('style', 'STD').strip().upper()
+        name = request.POST.get('name', 'ITEM').strip().upper()
+        design_model = request.POST.get('design_model', '').strip()
+        color = request.POST.get('color', 'BLK').strip().upper()
+        size = request.POST.get('size', 'FREE').strip().upper()
+        number = request.POST.get('number', '').strip() or get_next_serial()
+        number = number.zfill(3) if number.isdigit() and len(number) < 3 else number
+
         if not name:
             messages.error(request, 'Product name is required.')
         else:
-            product = JewelrySKU.objects.create(
+            product = JewelrySKU(
+                category=category,
+                style=style,
                 name=name,
-                category=request.POST.get('category', 'General').strip() or 'General',
-                style=request.POST.get('style', 'Standard').strip() or 'Standard',
-                design_model=request.POST.get('design_model', '').strip(),
-                size=request.POST.get('size', 'Free Size').strip() or 'Free Size',
-                color=request.POST.get('color', 'Black').strip() or 'Black',
+                design_model=design_model,
+                color=color,
+                size=size,
+                number=number,
                 image=request.FILES.get('image'),
+                stock=0,
             )
+            product.save()
             messages.success(request, f'Product created successfully! SKU: {product.sku}')
             return redirect('product_master')
 
     products = JewelrySKU.objects.all().order_by('-created_at')
+    existing_skus = list(JewelrySKU.objects.values_list('sku', flat=True))
     return render(request, 'sku_manager/products.html', {
         'products': products,
+        'existing_skus': existing_skus,
+        'next_serial': get_next_serial(),
         'active_page': 'products',
     })
 
@@ -409,20 +425,24 @@ def product_edit_details(request, pk):
     product = get_object_or_404(JewelrySKU, pk=pk)
 
     if request.method == 'POST':
-        product.name = request.POST.get('name', '').strip() or product.name
-        product.category = request.POST.get('category', '').strip() or product.category
-        product.style = request.POST.get('style', '').strip() or product.style
+        product.category = request.POST.get('category', product.category).strip().upper()
+        product.style = request.POST.get('style', product.style).strip().upper()
+        product.name = request.POST.get('name', product.name).strip().upper()
         product.design_model = request.POST.get('design_model', '').strip()
-        product.size = request.POST.get('size', '').strip() or product.size
-        product.color = request.POST.get('color', '').strip() or product.color
+        product.color = request.POST.get('color', product.color).strip().upper()
+        product.size = request.POST.get('size', product.size).strip().upper()
+        number = request.POST.get('number', product.number).strip()
+        product.number = number.zfill(3) if number.isdigit() and len(number) < 3 else number
         if request.FILES.get('image'):
             product.image = request.FILES['image']
         product.save()
-        messages.success(request, f'Product details updated for {product.sku}.')
+        messages.success(request, f'Details updated for {product.sku}.')
         return redirect('product_master')
 
+    existing_skus = list(JewelrySKU.objects.exclude(pk=pk).values_list('sku', flat=True))
     return render(request, 'sku_manager/product_edit.html', {
         'product': product,
+        'existing_skus': existing_skus,
         'active_page': 'products',
     })
 

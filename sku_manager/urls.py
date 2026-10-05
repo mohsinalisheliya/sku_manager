@@ -29,8 +29,7 @@ urlpatterns = [
     path('stock/add/', views.stock_inward, name='stock_inward'),
 
     # Existing Catalog & Operations
-    path('', views.sku_inventory, name='sku_inventory'),
-    path('inventory/', views.sku_inventory, name='sku_inventory'),
+    path('inventory/', views.sku_inventory, name='sku_inventory_legacy'),
     path('edit/<int:pk>/', views.sku_edit, name='sku_edit'),
     path('delete/<int:pk>/', views.sku_delete, name='sku_delete'),
     path('toggle-listed/<int:pk>/', views.toggle_listed, name='sku_toggle_listed'),

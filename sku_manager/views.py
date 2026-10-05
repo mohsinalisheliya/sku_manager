@@ -772,6 +772,12 @@ def sku_inventory(request):
         'active_page': 'inventory',
     })
 
+
+@login_required(login_url='login')
+def inventory_list(request):
+    return sku_inventory(request)
+
+
 @login_required(login_url='login')
 def product_stock_detail(request, pk):
     item = get_object_or_404(JewelrySKU.objects.select_related('storage_box').prefetch_related('batches__storage_box'), pk=pk)

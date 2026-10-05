@@ -457,65 +457,6 @@ def box_delete(request, pk):
     messages.info(request, f"Storage box '{name}' deleted. Associated products are now unassigned.")
     return redirect('box_manager')
 
-# 2. SKU Generator
-@login_required(login_url='login')
-def sku_generate(request):
-    platforms = get_or_seed_platforms()
-    boxes = get_all_boxes()
-
-    if request.method == 'POST':
-        category = request.POST.get('category', '').strip()
-        style = request.POST.get('style', '').strip()
-        name = request.POST.get('name', '').strip()
-        color = request.POST.get('color', '').strip()
-        size = request.POST.get('size', '').strip()
-        number = request.POST.get('number', '').strip()
-        stock = request.POST.get('stock', '').strip()
-        purchase_price = request.POST.get('purchase_price', '').strip()
-        selling_price = request.POST.get('selling_price', '').strip()
-        box_id = request.POST.get('storage_box', '').strip()
-        section_name = request.POST.get('section_name', '').strip()
-        image = request.FILES.get('image')
-
-        storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
-
-        try:
-            item = JewelrySKU(
-                category=category or 'UNC',
-                style=style or 'STD',
-                name=name or 'ITEM',
-                color=color or 'GLD',
-                size=size or 'FREE',
-                number=number or '001',
-                storage_box=storage_box,
-                section_name=section_name,
-                stock=int(stock) if stock.isdigit() else 0,
-                purchase_price=float(purchase_price) if purchase_price else 0.0,
-                selling_price=float(selling_price) if selling_price else 0.0,
-                image=image
-            )
-            item.save()
-
-            for p in platforms:
-                p_val = request.POST.get(f'platform_price_{p.id}', '').strip()
-                if p_val:
-                    PlatformPrice.objects.create(sku=item, platform=p, price=float(p_val))
-
-            box_label = storage_box.name if storage_box else "No Box"
-            messages.success(request, f"SKU '{item.sku}' saved in {box_label} ({item.section_name})!")
-            return redirect('sku_inventory')
-        except Exception as e:
-            messages.error(request, f"Error saving SKU: {str(e)}")
-
-    existing_skus = list(JewelrySKU.objects.values_list('sku', flat=True))
-    return render(request, 'sku_manager/generator.html', {
-        'is_edit': False,
-        'next_serial': get_next_serial(),
-        'existing_skus': existing_skus,
-        'platforms': platforms,
-        'boxes': boxes,
-        'active_page': 'generator',
-    })
 
 # 3. Inventory View
 @login_required(login_url='login')

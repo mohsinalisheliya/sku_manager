@@ -8,9 +8,13 @@ urlpatterns = [
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
 
-    # Separate Module 1: Add Products
-    path('stock/add/', views.stock_manage_view, name='product_create'),
-    path('products/add/', views.stock_manage_view),
+    # Product master and stock management
+    path('products/', views.product_master, name='product_master'),
+    path('products/add/', views.product_master, name='product_create'),
+    path('products/<int:pk>/edit-details/', views.product_edit_details, name='product_edit_details'),
+    path('stock/manage/add/', views.stock_manage_view, name='stock_manage_create'),
+    path('inventory-list/', views.inventory_list, name='inventory_list'),
+    path('inventory/<int:pk>/stock-action/', views.stock_action, name='stock_action'),
     path('', views.stock_inventory_list, name='sku_inventory'),
     path('stock-list/', views.stock_inventory_list, name='stock_inventory_list'),
     path('stock/edit/<int:pk>/', views.stock_manage_view, name='stock_edit'),
@@ -21,7 +25,7 @@ urlpatterns = [
     path('stock/batch/<int:batch_id>/edit/', views.edit_batch_action, name='edit_batch_action'),
     path('products/<int:pk>/toggle-sales/', views.toggle_product_sales, name='toggle_product_sales'),
     
-    # Separate Module 2: Inward Stock & Batches
+    # Inward Stock & Batches
     path('stock/add/', views.stock_inward, name='stock_inward'),
 
     # Existing Catalog & Operations

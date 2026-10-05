@@ -379,6 +379,140 @@ def stock_edit(request, pk):
 
 
 @login_required(login_url='login')
+def product_master(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, 'Product name is required.')
+        else:
+            product = JewelrySKU.objects.create(
+                name=name,
+                category=request.POST.get('category', 'General').strip() or 'General',
+                style=request.POST.get('style', 'Standard').strip() or 'Standard',
+                design_model=request.POST.get('design_model', '').strip(),
+                size=request.POST.get('size', 'Free Size').strip() or 'Free Size',
+                color=request.POST.get('color', 'Black').strip() or 'Black',
+                image=request.FILES.get('image'),
+            )
+            messages.success(request, f'Product created successfully! SKU: {product.sku}')
+            return redirect('product_master')
+
+    products = JewelrySKU.objects.all().order_by('-created_at')
+    return render(request, 'sku_manager/products.html', {
+        'products': products,
+        'active_page': 'products',
+    })
+
+
+@login_required(login_url='login')
+def product_edit_details(request, pk):
+    product = get_object_or_404(JewelrySKU, pk=pk)
+
+    if request.method == 'POST':
+        product.name = request.POST.get('name', '').strip() or product.name
+        product.category = request.POST.get('category', '').strip() or product.category
+        product.style = request.POST.get('style', '').strip() or product.style
+        product.design_model = request.POST.get('design_model', '').strip()
+        product.size = request.POST.get('size', '').strip() or product.size
+        product.color = request.POST.get('color', '').strip() or product.color
+        if request.FILES.get('image'):
+            product.image = request.FILES['image']
+        product.save()
+        messages.success(request, f'Product details updated for {product.sku}.')
+        return redirect('product_master')
+
+    return render(request, 'sku_manager/product_edit.html', {
+        'product': product,
+        'active_page': 'products',
+    })
+
+
+@login_required(login_url='login')
+def stock_action(request, pk):
+    item = get_object_or_404(JewelrySKU, pk=pk)
+    platforms = get_or_seed_platforms()
+    boxes = get_all_boxes()
+
+    if request.method == 'POST':
+        batch_no = request.POST.get('batch_no', '').strip() or f"BAT-{datetime.now().strftime('%y%m%d%H%M')}"
+        try:
+            stock_qty = int(request.POST.get('stock_qty', '0').strip())
+            purchase_price = Decimal(request.POST.get('purchase_price', '0').strip() or '0')
+            selling_price = Decimal(request.POST.get('selling_price', '0').strip() or '0')
+            if stock_qty < 0 or purchase_price < 0 or selling_price < 0:
+                raise ValueError
+
+            platform_prices = {}
+            for platform in platforms:
+                value = request.POST.get(f'platform_price_{platform.id}', '').strip()
+                if value:
+                    price = Decimal(value)
+                    if price < 0:
+                        raise ValueError
+                    platform_prices[platform] = price
+        except (TypeError, ValueError, InvalidOperation):
+            messages.error(request, 'Enter a non-negative whole stock quantity and valid prices.')
+            return redirect('stock_action', pk=item.pk)
+
+        box_choice = request.POST.get('box_choice', 'previous')
+        storage_box = None
+        if box_choice == 'new':
+            new_box_name = request.POST.get('new_box_name', '').strip()
+            if new_box_name:
+                storage_box, _ = StorageBox.objects.get_or_create(
+                    name=new_box_name,
+                    defaults={'color_tag': request.POST.get('new_box_color', '#3B82F6').strip()},
+                )
+        else:
+            box_id = request.POST.get('existing_box_id', '').strip()
+            storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
+
+        section_name = request.POST.get('section_name', '').strip() or 'Main Compartment'
+        with transaction.atomic():
+            item.batches.filter(status='active').update(status='disabled')
+            StockBatch.objects.create(
+                sku=item,
+                batch_no=batch_no,
+                quantity=stock_qty,
+                purchase_price=purchase_price,
+                selling_price=selling_price,
+                storage_box=storage_box,
+                section_name=section_name,
+                status='active',
+            )
+            item.purchase_price = purchase_price
+            item.selling_price = selling_price
+            item.batch_no = batch_no
+            item.storage_box = storage_box
+            item.section_name = section_name
+            item.save()
+            item.sync_stock_from_batches()
+
+            for platform in platforms:
+                if platform in platform_prices:
+                    PlatformPrice.objects.update_or_create(
+                        sku=item,
+                        platform=platform,
+                        defaults={'price': platform_prices[platform]},
+                    )
+                else:
+                    PlatformPrice.objects.filter(sku=item, platform=platform).delete()
+
+        messages.success(request, f'Stock and pricing saved for {item.sku}. Current stock: {item.stock} units.')
+        return redirect('inventory_list')
+
+    current_prices = {entry.platform_id: entry.price for entry in item.platform_prices.all()}
+    return render(request, 'sku_manager/stock_action.html', {
+        'item': item,
+        'platforms': platforms,
+        'boxes': boxes,
+        'current_prices': current_prices,
+        'suggested_batch': item.batch_no or f"BAT-{datetime.now().strftime('%y%m%d%H%M')}",
+        'active_page': 'inventory',
+    })
+
+
+@login_required(login_url='login')
 def product_batches_view(request, pk):
     product = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
     batches = product.batches.select_related('storage_box').order_by('-created_at')

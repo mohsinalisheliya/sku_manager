@@ -136,6 +136,11 @@
                   ✏️ Edit
                 </a>
 
+                <a href="{% url 'stock_action' item.pk %}"
+                   class="inline-flex items-center gap-1 text-xs bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2.5 py-1 rounded-lg transition font-semibold">
+                  Stock & Rates
+                </a>
+
                 <button type="button" 
                         onclick="openAddStockModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.sku|escapejs }}', '{{ item.purchase_price }}', '{{ item.selling_price }}', '{{ item.storage_box_id|default:'' }}', '{{ item.section_name|escapejs }}')"
                         class="inline-flex items-center gap-1 text-xs bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-lg transition font-bold">

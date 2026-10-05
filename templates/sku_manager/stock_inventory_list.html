@@ -66,7 +66,10 @@
               {% elif item.stock <= low_threshold %}<span class="inline-flex px-2.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400 font-bold font-mono">{{ item.stock }} Units (Low)</span>
               {% else %}<span class="inline-flex px-2.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400 font-bold font-mono">{{ item.stock }} Units</span>{% endif %}
             </td>
-            <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap"><a href="{% url 'sku_edit' item.pk %}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 transition">✏️ Edit</a><a href="{% url 'product_batches' item.pk %}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-xs transition">+ Stock</a></td>
+            <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+              <a href="{% url 'sku_print_label' item.pk %}" target="_blank" title="Print Tag" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold hover:bg-amber-500/20 text-xs transition">🏷️ Tag</a>
+              <a href="{% url 'stock_edit' item.pk %}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-xs text-xs transition"><span>✏️ Manage Stock</span></a>
+            </td>
           </tr>
           {% empty %}<tr><td colspan="4" class="text-center py-12 text-slate-400 dark:text-slate-500">No inventory products found matching your search.</td></tr>{% endfor %}
         </tbody>

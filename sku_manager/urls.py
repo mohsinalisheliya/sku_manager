@@ -10,7 +10,9 @@ urlpatterns = [
 
     # Separate Module 1: Add Products
     path('products/add/', views.product_create, name='product_create'),
+    path('', views.stock_inventory_list, name='sku_inventory'),
     path('stock-list/', views.stock_inventory_list, name='stock_inventory_list'),
+    path('stock/edit/<int:pk>/', views.stock_edit, name='stock_edit'),
     path('products/<int:pk>/detail/', views.product_stock_detail, name='product_stock_detail'),
     path('products/<int:pk>/batches/', views.product_batches_view, name='product_batches'),
     path('products/<int:pk>/batches/add/', views.add_batch_action, name='add_batch_action'),

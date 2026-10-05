@@ -216,6 +216,8 @@ def stock_inward(request):
 @login_required(login_url='login')
 def stock_inventory_list(request):
     settings_obj = AppSettings.get_settings()
+    threshold = settings_obj.low_stock_threshold
+
     search_query = request.GET.get('q', '').strip()
     sort_option = request.GET.get('sort', 'low_to_high')
     try:
@@ -224,27 +226,29 @@ def stock_inventory_list(request):
         limit = 10
     limit = max(1, min(limit, 50))
 
-    products = JewelrySKU.objects.annotate(
-        active_stock=Sum('batches__quantity', filter=Q(batches__status='active')),
-    )
-    stats = products.values('pk', 'active_stock')
-    stock_values = [row['active_stock'] or 0 for row in stats]
-    total_out_of_stock = sum(stock == 0 for stock in stock_values)
-    total_low_stock = sum(0 < stock <= settings_obj.low_stock_threshold for stock in stock_values)
-    total_sufficient = sum(stock > settings_obj.low_stock_threshold for stock in stock_values)
+    products = JewelrySKU.objects.all()
+
+    total_out_of_stock = products.filter(stock=0).count()
+    total_low_stock = products.filter(stock__gt=0, stock__lte=threshold).count()
+    total_sufficient = products.filter(stock__gt=threshold).count()
 
     if search_query:
-        products = products.filter(Q(sku__icontains=search_query) | Q(name__icontains=search_query))
+        products = products.filter(
+            Q(sku__icontains=search_query) |
+            Q(name__icontains=search_query)
+        )
 
-    ordering = {
-        'low_to_high': ('active_stock', 'name'),
-        'high_to_low': ('-active_stock', 'name'),
-        'name': ('name',),
-    }.get(sort_option, ('-created_at',))
-    products = products.order_by(*ordering)
-    page_obj = Paginator(products, limit).get_page(request.GET.get('page'))
-    for product in page_obj.object_list:
-        product.stock = product.active_stock or 0
+    if sort_option == 'low_to_high':
+        products = products.order_by('stock', 'name')
+    elif sort_option == 'high_to_low':
+        products = products.order_by('-stock', 'name')
+    elif sort_option == 'name':
+        products = products.order_by('name')
+    else:
+        products = products.order_by('-created_at')
+
+    paginator = Paginator(products, limit)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'sku_manager/stock_inventory_list.html', {
         'page_obj': page_obj,
@@ -254,7 +258,74 @@ def stock_inventory_list(request):
         'total_out_of_stock': total_out_of_stock,
         'total_low_stock': total_low_stock,
         'total_sufficient': total_sufficient,
-        'low_threshold': settings_obj.low_stock_threshold,
+        'low_threshold': threshold,
+        'active_page': 'stock_list',
+    })
+
+
+@login_required(login_url='login')
+def stock_edit(request, pk):
+    item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
+    platforms = get_or_seed_platforms()
+    boxes = get_all_boxes()
+
+    if request.method == 'POST':
+        stock_mode = request.POST.get('stock_mode', 'set')
+        add_units = request.POST.get('add_units', '0').strip()
+        set_units = request.POST.get('stock_units', '0').strip()
+
+        try:
+            if stock_mode == 'add':
+                inward = int(add_units) if add_units else 0
+                item.stock = max(0, item.stock + inward)
+            else:
+                item.stock = max(0, int(set_units) if set_units else 0)
+        except (TypeError, ValueError):
+            item.stock = 0
+
+        try:
+            p_cost = Decimal(request.POST.get('purchase_price', '0').strip() or '0')
+            s_price = Decimal(request.POST.get('selling_price', '0').strip() or '0')
+            if p_cost < 0 or s_price < 0:
+                raise ValueError
+            item.purchase_price = p_cost
+            item.selling_price = s_price
+        except (InvalidOperation, ValueError):
+            messages.error(request, 'Enter valid, non-negative pricing values.')
+            return redirect('stock_edit', pk=item.pk)
+
+        box_id = request.POST.get('storage_box', '').strip()
+        item.storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
+        item.section_name = request.POST.get('section_name', '').strip() or 'Main Section'
+        item.is_listed = 'is_listed' in request.POST
+        item.save()
+
+        for platform in platforms:
+            p_val = request.POST.get(f'platform_price_{platform.id}', '').strip()
+            if p_val:
+                try:
+                    price = Decimal(p_val)
+                    if price < 0:
+                        raise ValueError
+                    PlatformPrice.objects.update_or_create(
+                        sku=item,
+                        platform=platform,
+                        defaults={'price': price},
+                    )
+                except (InvalidOperation, ValueError):
+                    continue
+            else:
+                PlatformPrice.objects.filter(sku=item, platform=platform).delete()
+
+        messages.success(request, f"✓ Stock & rates updated for '{item.sku}'! Current Stock: {item.stock} Units")
+        return redirect('stock_inventory_list')
+
+    current_prices = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
+    return render(request, 'sku_manager/stock_edit.html', {
+        'item': item,
+        'platforms': platforms,
+        'boxes': boxes,
+        'current_prices': current_prices,
         'active_page': 'stock_list',
     })
 

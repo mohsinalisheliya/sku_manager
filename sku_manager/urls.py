@@ -12,12 +12,13 @@ urlpatterns = [
     path('products/', views.product_master, name='product_master'),
     path('products/add/', views.product_master, name='product_create'),
     path('products/edit/<int:pk>/', views.product_edit_details, name='product_edit_details'),
+    path('products/<int:pk>/edit-details/', views.product_edit_details, name='product_edit_details_legacy'),
     path('stock/manage/add/', views.stock_manage_view, name='stock_manage_create'),
     path('inventory/<int:pk>/stock/', views.stock_action, name='stock_action'),
+    path('inventory/<int:pk>/stock-action/', views.stock_action, name='stock_action_legacy'),
     path('', views.inventory_list, name='inventory_list'),
     path('inventory/', views.inventory_list, name='sku_inventory'),
     path('inventory-list/', views.inventory_list, name='inventory_list_legacy'),
-    path('', views.stock_inventory_list, name='stock_inventory_root_legacy'),
     path('stock-list/', views.stock_inventory_list, name='stock_inventory_list'),
     path('stock/edit/<int:pk>/', views.stock_manage_view, name='stock_edit'),
     path('products/<int:pk>/detail/', views.product_stock_detail, name='product_stock_detail'),
@@ -31,7 +32,6 @@ urlpatterns = [
     path('stock/add/', views.stock_inward, name='stock_inward'),
 
     # Existing Catalog & Operations
-    path('inventory/', views.sku_inventory, name='sku_inventory_legacy'),
     path('edit/<int:pk>/', views.sku_edit, name='sku_edit'),
     path('delete/<int:pk>/', views.sku_delete, name='sku_delete'),
     path('toggle-listed/<int:pk>/', views.toggle_listed, name='sku_toggle_listed'),

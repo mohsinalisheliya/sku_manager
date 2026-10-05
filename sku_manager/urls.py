@@ -1,5 +1,4 @@
-Step 3: Register Clean URLs in sku_manager/urls.py
-Python
+
 from django.urls import path
 from . import views
 

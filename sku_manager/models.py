@@ -23,36 +23,13 @@ class StorageBox(models.Model):
         return self.name
 
 class JewelrySKU(models.Model):
-    CATEGORY_CHOICES = [
-        ('APP', 'APP - Apparel / Clothing'),
-        ('ACC', 'ACC - Accessories'),
-        ('ELC', 'ELC - Electronics / Gadgets'),
-        ('FTW', 'FTW - Footwear'),
-        ('HOM', 'HOM - Home & Living'),
-        ('BEA', 'BEA - Beauty & Care'),
-        ('NCK', 'NCK - Necklace / Chain'),
-        ('BGL', 'BGL - Bangles / Kada'),
-        ('GEN', 'GEN - General Goods'),
-    ]
-
-    COLOR_CHOICES = [
-        ('BLK', 'BLK - Black'),
-        ('WHT', 'WHT - White'),
-        ('BLU', 'BLU - Blue'),
-        ('RED', 'RED - Red'),
-        ('GRN', 'GRN - Green'),
-        ('GLD', 'GLD - Gold'),
-        ('SLV', 'SLV - Silver'),
-        ('BRN', 'BRN - Brown'),
-        ('MTC', 'MTC - Multi-Color'),
-    ]
-
     # 1. Product Attributes
-    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='GEN')
-    style = models.CharField(max_length=20, default='STD')
-    name = models.CharField(max_length=50, default='ITEM')
-    color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='BLK')
-    size = models.CharField(max_length=20, default='FREE')
+    name = models.CharField(max_length=100)
+    category = models.CharField(max_length=50, default='General')
+    style = models.CharField(max_length=50, blank=True, default='Standard')
+    design_model = models.CharField(max_length=50, blank=True, default='')
+    size = models.CharField(max_length=30, blank=True, default='Free Size')
+    color = models.CharField(max_length=30, blank=True, default='Black')
     number = models.CharField(max_length=10, default='001')
     sku = models.CharField(max_length=100, unique=True, editable=False)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
@@ -62,7 +39,7 @@ class JewelrySKU(models.Model):
     batch_no = models.CharField(max_length=50, blank=True, default='')
     stock = models.PositiveIntegerField(default=0)
     storage_box = models.ForeignKey(StorageBox, on_delete=models.SET_NULL, null=True, blank=True, related_name='skus')
-    section_name = models.CharField(max_length=50, blank=True, default='Main Section')
+    section_name = models.CharField(max_length=50, blank=True, default='Main Slot')
 
     # 3. Base Pricing
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -97,16 +74,13 @@ class JewelrySKU(models.Model):
         self.save()
 
     def save(self, *args, **kwargs):
-        self.style = self.sanitize(self.style) or 'STD'
-        self.name = self.sanitize(self.name) or 'ITEM'
-        self.size = str(self.size or 'FREE').strip().upper()
-
-        clean_num = self.sanitize(self.number) or '001'
-        if clean_num.isdigit() and len(clean_num) < 3:
-            clean_num = clean_num.zfill(3)
-        self.number = clean_num
-
-        self.sku = f"{self.category}-{self.style}-{self.name}-{self.color}-{self.size}-{self.number}"
+        if not self.sku:
+            category_tag = re.sub(r'[^A-Z0-9]', '', self.category.upper())[:3] or 'GEN'
+            style_tag = re.sub(r'[^A-Z0-9]', '', self.style.upper())[:3] or 'STD'
+            name_tag = re.sub(r'[^A-Z0-9]', '', self.name.upper())[:4] or 'ITEM'
+            color_tag = re.sub(r'[^A-Z0-9]', '', self.color.upper())[:3] or 'BLK'
+            last_id = JewelrySKU.objects.order_by('-id').values_list('id', flat=True).first() or 0
+            self.sku = f"{category_tag}-{style_tag}-{name_tag}-{color_tag}-{last_id + 1:03d}"
         super().save(*args, **kwargs)
 
     def __str__(self):

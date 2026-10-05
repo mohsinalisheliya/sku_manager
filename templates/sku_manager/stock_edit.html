@@ -108,45 +108,32 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Category Code</label>
-            <select name="category" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-amber-500">
-              <option value="APP" {% if item and item.category == 'APP' %}selected{% endif %}>APP - Apparel</option>
-              <option value="ACC" {% if item and item.category == 'ACC' %}selected{% endif %}>ACC - Accessories</option>
-              <option value="ELC" {% if item and item.category == 'ELC' %}selected{% endif %}>ELC - Electronics</option>
-              <option value="FTW" {% if item and item.category == 'FTW' %}selected{% endif %}>FTW - Footwear</option>
-              <option value="HOM" {% if item and item.category == 'HOM' %}selected{% endif %}>HOM - Home</option>
-              <option value="BEA" {% if item and item.category == 'BEA' %}selected{% endif %}>BEA - Beauty</option>
-              <option value="NCK" {% if item and item.category == 'NCK' %}selected{% endif %}>NCK - Necklace</option>
-              <option value="BGL" {% if item and item.category == 'BGL' %}selected{% endif %}>BGL - Bangles</option>
-              <option value="GEN" {% if not item or item.category == 'GEN' %}selected{% endif %}>GEN - General</option>
-            </select>
+            <input type="text" name="category" maxlength="50" value="{% if item %}{{ item.category }}{% else %}General{% endif %}" placeholder="e.g. Apparel, Jewelry"
+              class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-amber-500">
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Style Code</label>
-            <input type="text" name="style" value="{% if item %}{{ item.style }}{% else %}STD{% endif %}" placeholder="e.g. SLIM, CAS, PND"
+            <input type="text" name="style" maxlength="50" value="{% if item %}{{ item.style }}{% else %}Standard{% endif %}" placeholder="e.g. Slim, Classic"
               class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono uppercase text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Design / Model</label>
+            <input type="text" name="design_model" maxlength="50" value="{% if item %}{{ item.design_model }}{% endif %}" placeholder="Optional model identifier"
+              class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Color</label>
-            <select name="color" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-amber-500">
-              <option value="BLK" {% if item and item.color == 'BLK' %}selected{% endif %}>BLK - Black</option>
-              <option value="WHT" {% if item and item.color == 'WHT' %}selected{% endif %}>WHT - White</option>
-              <option value="BLU" {% if item and item.color == 'BLU' %}selected{% endif %}>BLU - Blue</option>
-              <option value="RED" {% if item and item.color == 'RED' %}selected{% endif %}>RED - Red</option>
-              <option value="GRN" {% if item and item.color == 'GRN' %}selected{% endif %}>GRN - Green</option>
-              <option value="GLD" {% if item and item.color == 'GLD' %}selected{% endif %}>GLD - Gold</option>
-              <option value="SLV" {% if item and item.color == 'SLV' %}selected{% endif %}>SLV - Silver</option>
-              <option value="BRN" {% if item and item.color == 'BRN' %}selected{% endif %}>BRN - Brown</option>
-              <option value="MTC" {% if item and item.color == 'MTC' %}selected{% endif %}>MTC - Multi</option>
-            </select>
+            <input type="text" name="color" maxlength="30" value="{% if item %}{{ item.color }}{% else %}Black{% endif %}" placeholder="e.g. Black, Rose Gold"
+              class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-amber-500">
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">Size / Fit</label>
-            <input type="text" name="size" value="{% if item %}{{ item.size }}{% else %}FREE{% endif %}" placeholder="e.g. M, L, XL, FREE"
+            <input type="text" name="size" maxlength="30" value="{% if item %}{{ item.size }}{% else %}Free Size{% endif %}" placeholder="e.g. M, L, XL, Free Size"
               class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono uppercase text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
           </div>
         </div>

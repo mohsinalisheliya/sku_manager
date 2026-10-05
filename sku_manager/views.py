@@ -272,10 +272,11 @@ def stock_manage_view(request, pk=None):
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
-        category = request.POST.get('category', 'GEN').strip() or 'GEN'
-        style = request.POST.get('style', 'STD').strip() or 'STD'
-        color = request.POST.get('color', 'BLK').strip() or 'BLK'
-        size = request.POST.get('size', 'FREE').strip() or 'FREE'
+        category = request.POST.get('category', 'General').strip() or 'General'
+        style = request.POST.get('style', 'Standard').strip() or 'Standard'
+        design_model = request.POST.get('design_model', '').strip()
+        color = request.POST.get('color', 'Black').strip() or 'Black'
+        size = request.POST.get('size', 'Free Size').strip() or 'Free Size'
         number = request.POST.get('number', '001').strip() or '001'
 
         box_id = request.POST.get('storage_box', '').strip()
@@ -308,6 +309,7 @@ def stock_manage_view(request, pk=None):
                 name=name or 'NEW ITEM',
                 category=category,
                 style=style,
+                design_model=design_model,
                 color=color,
                 size=size,
                 number=number,
@@ -326,6 +328,7 @@ def stock_manage_view(request, pk=None):
             item.name = name or item.name
             item.category = category
             item.style = style
+            item.design_model = design_model
             item.color = color
             item.size = size
             item.number = number

@@ -6,47 +6,75 @@
 <div class="space-y-6 max-w-6xl mx-auto">
 
   <!-- Header -->
-  <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+  <header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
     <div>
       <h1 class="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
         <span>📦</span> Inventory
       </h1>
-      <p class="text-xs text-slate-500 dark:text-slate-400">View current stock and inward or update stock quantities.</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        Total database records: <strong class="text-amber-600 dark:text-amber-400 font-mono">{{ total_count }}</strong> items
+      </p>
     </div>
-    <form method="GET" class="relative">
-      <input type="text" name="q" value="{{ search_query }}" placeholder="Search SKU or Name..."
-        class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 w-56">
-    </form>
+
+    <div class="flex items-center gap-3">
+      <!-- Search -->
+      <form method="GET" class="relative">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search SKU or Name..."
+          class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 w-56 transition">
+      </form>
+
+      <!-- Add Product Link -->
+      <a href="{% url 'product_master' %}" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm">
+        + Add Product
+      </a>
+    </div>
   </header>
 
-  <!-- Table: Inventory -->
+  <!-- Inventory Table (Part 2) -->
   <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-3xl p-6 shadow-sm">
     <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
       <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
         <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
           <tr>
-            <th class="py-3 px-4 font-semibold">SKU ID</th>
-            <th class="py-3 px-4 font-semibold">Product Name</th>
-            <th class="py-3 px-4 font-semibold text-center">Current Stock</th>
-            <th class="py-3 px-4 text-right font-semibold">Actions</th>
+            <th class="py-3.5 px-4 font-semibold">SKU ID</th>
+            <th class="py-3.5 px-4 font-semibold">Product Name</th>
+            <th class="py-3.5 px-4 font-semibold text-center">Current Stock</th>
+            <th class="py-3.5 px-4 text-right font-semibold">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
-          {% for item in items %}
+          {% for item in items|default:skus %}
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
+              <!-- SKU ID -->
               <td class="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
                 {{ item.sku }}
               </td>
+
+              <!-- Product Name -->
               <td class="py-3.5 px-4 font-extrabold text-slate-900 dark:text-white">
-                {{ item.name }}
+                <div>{{ item.name }}</div>
+                <div class="text-[10px] text-slate-400 font-normal">{{ item.category }} • {{ item.color }} • {{ item.size }}</div>
               </td>
+
+              <!-- Current Stock -->
               <td class="py-3.5 px-4 text-center">
-                <span class="inline-flex px-3 py-1 rounded-lg font-mono font-bold text-xs {% if item.stock == 0 %}bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-200 dark:border-rose-900{% else %}bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-900{% endif %}">
-                  {{ item.stock }} Units
-                </span>
+                {% if item.stock == 0 %}
+                  <span class="inline-flex px-3 py-1 rounded-lg font-mono font-bold text-xs bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-200 dark:border-rose-900">
+                    0 Units
+                  </span>
+                {% elif item.stock <= 5 %}
+                  <span class="inline-flex px-3 py-1 rounded-lg font-mono font-bold text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900">
+                    {{ item.stock }} Units
+                  </span>
+                {% else %}
+                  <span class="inline-flex px-3 py-1 rounded-lg font-mono font-bold text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-900">
+                    {{ item.stock }} Units
+                  </span>
+                {% endif %}
               </td>
+
+              <!-- Actions (Both go to stock_action) -->
               <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
-                <!-- Both Edit and Add Stock Point to the EXACT SAME Action Page -->
                 <a href="{% url 'stock_action' item.pk %}" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg font-bold border border-slate-200 dark:border-slate-700 transition">
                   ✏️ Edit Stock
                 </a>
@@ -57,7 +85,13 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4" class="text-center py-10 text-slate-400">No inventory products found.</td>
+              <td colspan="4" class="text-center py-12 text-slate-400">
+                <div class="text-base mb-1">📦 No inventory records found.</div>
+                <div class="text-xs text-slate-500 mb-3">Add a product from the Products page to see it here.</div>
+                <a href="{% url 'product_master' %}" class="inline-block bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">
+                  + Add Product
+                </a>
+              </td>
             </tr>
           {% endfor %}
         </tbody>

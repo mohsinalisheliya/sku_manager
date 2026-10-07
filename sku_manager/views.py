@@ -169,7 +169,6 @@ def product_edit_details(request, pk):
 
 
 @login_required(login_url='login')
-# sku_manager/views.py ke andar product_list_view ko replace karein:
 
 @login_required(login_url='login')
 def product_list_view(request):

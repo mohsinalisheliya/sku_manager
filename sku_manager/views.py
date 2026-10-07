@@ -420,6 +420,7 @@ def platform_delete(request, pk):
 # --- Dispatch, Scanner & Label Print ---
 def scan_dispatch(request, sku):
     item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), sku=sku)
+    item.sync_stock_from_batches()
     platforms = get_or_seed_platforms()
     price_map = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
 
@@ -431,8 +432,22 @@ def scan_dispatch(request, sku):
             messages.error(request, f"Out of stock: Cannot dispatch '{item.sku}'!")
             return redirect('scan_dispatch', sku=item.sku)
 
-        item.stock -= 1
-        item.save(update_fields=['stock', 'updated_at'])
+        with transaction.atomic():
+            active_batch = item.batches.select_for_update().filter(
+                status='active', quantity__gt=0
+            ).order_by('created_at').first()
+            if not active_batch:
+                item.sync_stock_from_batches()
+                messages.error(request, f"Out of stock: Cannot dispatch '{item.sku}'!")
+                return redirect('scan_dispatch', sku=item.sku)
+
+            active_batch.quantity -= 1
+            if active_batch.quantity == 0:
+                active_batch.status = 'disabled'
+                active_batch.finished_at = timezone.now()
+            active_batch.save()
+            item.sync_stock_from_batches()
+
         sold_price = price_map.get(platform.id, item.selling_price)
         DispatchLog.objects.create(
             sku=item,

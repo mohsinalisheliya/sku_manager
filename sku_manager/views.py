@@ -169,8 +169,6 @@ def product_edit_details(request, pk):
 
 
 @login_required(login_url='login')
-
-@login_required(login_url='login')
 def product_list_view(request):
     """Product Listing with Search & Server-Side Pagination"""
     search_query = request.GET.get('q', '').strip()

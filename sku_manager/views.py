@@ -62,45 +62,6 @@ def user_logout(request):
     return redirect('login')
 
 # --- PART 1: Product Master (Add Form + Listing Table) ---
-@login_required(login_url='login')
-def product_master(request):
-    if request.method == 'POST':
-        category = request.POST.get('category', 'GEN').strip().upper()
-        style = request.POST.get('style', 'STD').strip().upper()
-        name = request.POST.get('name', 'ITEM').strip().upper()
-        design_model = request.POST.get('design_model', '').strip()
-        color = request.POST.get('color', 'BLK').strip().upper()
-        size = request.POST.get('size', 'FREE').strip().upper()
-        number = request.POST.get('number', '').strip() or get_next_serial()
-
-        if not name:
-            messages.error(request, "Product name is required.")
-        else:
-            product = JewelrySKU(
-                category=category,
-                style=style,
-                name=name,
-                design_model=design_model,
-                color=color,
-                size=size,
-                number=number,
-                image=request.FILES.get('image'),
-                stock=0
-            )
-            product.save()
-            messages.success(request, f"✓ Product created successfully! SKU: {product.sku}")
-            return redirect('product_master')
-
-    products = JewelrySKU.objects.all().order_by('-created_at')
-    existing_skus = list(JewelrySKU.objects.values_list('sku', flat=True))
-
-    return render(request, 'sku_manager/products.html', {
-        'products': products,
-        'existing_skus': existing_skus,
-        'next_serial': get_next_serial(),
-        'active_page': 'products',
-    })
-
 
 @login_required(login_url='login')
 def product_edit_details(request, pk):

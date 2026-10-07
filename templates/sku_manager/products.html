@@ -1,12 +1,12 @@
 {% extends "sku_manager/base.html" %}
 
-{% block title %}Product Master & Catalog - Tatkal Pick{% endblock %}
+{% block title %}Add Product - Tatkal Pick{% endblock %}
 
 {% block content %}
-<div class="space-y-8 max-w-6xl mx-auto">
+<div class="space-y-6 max-w-6xl mx-auto">
 
   <!-- Header -->
-  <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+  <header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
     <div>
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-semibold uppercase tracking-wider mb-1.5">
         <span>🏷️</span> Catalog Master
@@ -14,7 +14,7 @@
       <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Add Products</h1>
       <p class="text-xs text-slate-500 dark:text-slate-400">Configure product specifications and auto-compile standardized SKUs.</p>
     </div>
-    <a href="{% url 'product_list' %}" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition shadow-sm flex items-center gap-2">
+    <a href="{% url 'product_list' %}" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition shadow-sm flex items-center gap-2 w-fit">
       <span>📋 View Product List</span>
       <span class="bg-blue-700/80 px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold">{{ products.count }}</span>
       <span>→</span>
@@ -182,63 +182,6 @@
       </button>
     </div>
   </form>
-
-  <!-- PRODUCT LISTING TABLE -->
-  <div id="productListingSection" class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-3xl p-6 shadow-sm space-y-4">
-    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
-      <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-        <span>📋</span> Product Listing
-      </h2>
-      <span class="text-xs text-slate-500 font-bold font-mono">{{ products.count }} Items Registered</span>
-    </div>
-
-    <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-      <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
-        <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
-          <tr>
-            <th class="py-3 px-4 w-16">Image</th>
-            <th class="py-3 px-4">SKU ID</th>
-            <th class="py-3 px-4">Name</th>
-            <th class="py-3 px-4">Category</th>
-            <th class="py-3 px-4 text-right">Action</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
-          {% for p in products %}
-            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
-              <td class="py-3 px-4">
-                <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-800">
-                  {% if p.image %}
-                    <img src="{{ p.image.url }}" class="w-full h-full object-cover">
-                  {% else %}
-                    <span class="text-[9px] text-slate-400 font-mono">N/A</span>
-                  {% endif %}
-                </div>
-              </td>
-              <td class="py-3 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
-                {{ p.sku }}
-              </td>
-              <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">
-                {{ p.name }}
-              </td>
-              <td class="py-3 px-4 text-slate-600 dark:text-slate-400 font-mono">
-                {{ p.category }}
-              </td>
-              <td class="py-3 px-4 text-right">
-                <a href="{% url 'product_edit_details' p.pk %}" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-lg font-bold border border-slate-200 dark:border-slate-700 transition">
-                  ✏️ Edit Detail Only
-                </a>
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="5" class="text-center py-8 text-slate-400">No products added yet.</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
 
 </div>
 {% endblock %}

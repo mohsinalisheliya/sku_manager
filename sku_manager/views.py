@@ -129,6 +129,44 @@ def product_edit_details(request, pk):
         'active_page': 'products',
     })
 
+
+@login_required(login_url='login')
+def product_list_view(request):
+    """Dedicated standalone product listing page."""
+    search_query = request.GET.get('q', '').strip()
+    products = JewelrySKU.objects.all().order_by('-created_at')
+
+    if search_query:
+        products = products.filter(
+            Q(sku__icontains=search_query) |
+            Q(name__icontains=search_query) |
+            Q(category__icontains=search_query)
+        )
+
+    return render(request, 'sku_manager/product_list.html', {
+        'products': products,
+        'search_query': search_query,
+        'total_count': products.count(),
+        'active_page': 'products',
+    })
+
+
+@login_required(login_url='login')
+def product_delete_secure(request, pk):
+    """Delete a product only after confirming the current user's password."""
+    product = get_object_or_404(JewelrySKU, pk=pk)
+
+    if request.method == 'POST':
+        entered_password = request.POST.get('delete_password', '').strip()
+        if request.user.check_password(entered_password):
+            sku_name = product.sku
+            product.delete()
+            messages.success(request, f"Product '{sku_name}' was permanently deleted.")
+        else:
+            messages.error(request, 'Access denied: incorrect password. Product was not deleted.')
+
+    return redirect('product_list')
+
 # --- PART 2: Inventory List (FIXES EMPTY TABLE) ---
 @login_required(login_url='login')
 def inventory_list(request):

@@ -1,0 +1,179 @@
+{% extends "sku_manager/base.html" %}
+
+{% block title %}Product Catalog Listing - Tatkal Pick{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-6xl mx-auto">
+
+  <!-- Header -->
+  <header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
+    <div>
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-semibold uppercase tracking-wider mb-1.5">
+        <span>📋</span> Master Catalog
+      </div>
+      <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Product Listing</h1>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Total registered products: <strong class="text-amber-600 dark:text-amber-400 font-mono">{{ total_count }}</strong> items</p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <!-- Search -->
+      <form method="GET" class="relative">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search SKU, Name..."
+          class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 w-52 sm:w-64 transition">
+      </form>
+
+      <!-- Add Product Button -->
+      <a href="{% url 'product_master' %}" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+        <span>+ Add Product</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Product Listing Table Card -->
+  <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-3xl p-6 shadow-sm">
+    <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+      <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+        <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
+          <tr>
+            <th class="py-3.5 px-4 w-16 text-center">Image</th>
+            <th class="py-3.5 px-4">SKU ID</th>
+            <th class="py-3.5 px-4">Name / Specs</th>
+            <th class="py-3.5 px-4">Category</th>
+            <th class="py-3.5 px-4">Style / Model</th>
+            <th class="py-3.5 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+          {% for p in products %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
+              <!-- Image Thumbnail -->
+              <td class="py-3 px-4 text-center">
+                <div class="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-800 mx-auto">
+                  {% if p.image %}
+                    <img src="{{ p.image.url }}" class="w-full h-full object-cover">
+                  {% else %}
+                    <span class="text-[9px] text-slate-400 font-mono">N/A</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- SKU ID -->
+              <td class="py-3 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">
+                {{ p.sku }}
+              </td>
+
+              <!-- Name & Color/Size -->
+              <td class="py-3 px-4">
+                <div class="font-extrabold text-slate-900 dark:text-white text-xs">{{ p.name }}</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">{{ p.color }} • {{ p.size }}</div>
+              </td>
+
+              <!-- Category -->
+              <td class="py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
+                {{ p.category }}
+              </td>
+
+              <!-- Style & Model -->
+              <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">
+                {{ p.style|default:"STD" }}{% if p.design_model %} • {{ p.design_model }}{% endif %}
+              </td>
+
+              <!-- Actions -->
+              <td class="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
+                <!-- Edit Detail -->
+                <a href="{% url 'product_edit_details' p.pk %}" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg font-bold border border-slate-200 dark:border-slate-700 transition">
+                  ✏️ Edit
+                </a>
+
+                <!-- Password-Protected Delete Button -->
+                <button type="button" 
+                        onclick="openDeleteModal('{{ p.id }}', '{{ p.sku|escapejs }}', '{{ p.name|escapejs }}')"
+                        class="inline-flex items-center gap-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg font-bold transition">
+                  🗑️ Delete
+                </button>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-12 text-slate-400">
+                No products found matching your search.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: PASSWORD-PROTECTED SECURE DELETION                -->
+<!-- ======================================================== -->
+<div id="deleteModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+    
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+      <div class="flex items-center gap-2 text-rose-500 font-extrabold text-sm">
+        <span class="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center">🔒</span>
+        <span>Security Verification Required</span>
+      </div>
+      <button type="button" onclick="closeDeleteModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+    </div>
+
+    <div>
+      <p class="text-xs text-slate-600 dark:text-slate-400">
+        You are about to permanently delete:
+      </p>
+      <div class="mt-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+        <div id="deleteModalSku" class="font-mono text-xs font-bold text-amber-600 dark:text-amber-400">---</div>
+        <div id="deleteModalName" class="font-extrabold text-sm text-slate-900 dark:text-white mt-0.5">---</div>
+      </div>
+    </div>
+
+    <!-- Password Submission Form -->
+    <form id="deleteForm" method="POST" action="" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
+          Enter Security Password / PIN <span class="text-rose-500">*</span>
+        </label>
+        <input type="password" name="delete_password" required autofocus placeholder="Account password or security PIN"
+          class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 transition">
+        <p class="text-[10px] text-slate-400 mt-1">Requires your login password or system PIN to authorize deletion.</p>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700">
+          Cancel
+        </button>
+        <button type="submit" class="bg-rose-600 hover:bg-rose-500 text-white font-black px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow-md shadow-rose-600/20">
+          Confirm & Delete
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function openDeleteModal(productId, sku, name) {
+    document.getElementById('deleteModalSku').innerText = sku;
+    document.getElementById('deleteModalName').innerText = name;
+    document.getElementById('deleteForm').action = `/products/delete/${productId}/`;
+    
+    const modal = document.getElementById('deleteModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.getElementById('deleteForm').reset();
+  }
+</script>
+{% endblock %}

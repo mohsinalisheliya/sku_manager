@@ -6,7 +6,7 @@ import re
 import qrcode
 from datetime import datetime
 from decimal import Decimal
-p
+from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages

@@ -208,6 +208,7 @@ def product_list_view(request):
         'total_count': total_count,
         'active_page': 'products',
     })
+
 @login_required(login_url='login')
 def product_delete_secure(request, pk):
     """Delete a product only after confirming the current user's password."""

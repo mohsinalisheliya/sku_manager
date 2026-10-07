@@ -8,7 +8,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -357,10 +357,47 @@ def product_batches_view(request, pk):
 
     batches = item.batches.select_related('storage_box').order_by('-created_at')
     active_units = sum(batch.quantity for batch in batches if batch.status == 'active')
+@login_required(login_url='login')
     platforms = get_or_seed_platforms()
-    platform_prices = {price.platform_id: price.price for price in item.platform_prices.all()}
+    if request.method == 'POST':
+        raw_threshold = request.POST.get('low_stock_threshold', '').strip()
+        if raw_threshold.isdigit() and int(raw_threshold) >= 1:
+            settings_obj = AppSettings.get_settings()
+            settings_obj.low_stock_threshold = int(raw_threshold)
+            settings_obj.save(update_fields=['low_stock_threshold', 'updated_at'])
+            messages.success(request, 'Low-stock threshold updated.')
+        else:
+            messages.error(request, 'Enter a whole-number threshold of at least 1.')
+    return redirect('inventory_list')
 
+
+@login_required(login_url='login')
+    platform_prices = {price.platform_id: price.price for price in item.platform_prices.all()}
+    product = get_object_or_404(JewelrySKU, pk=pk)
+    if request.method == 'POST':
+        product.is_listed = not product.is_listed
+        product.save(update_fields=['is_listed', 'updated_at'])
+        messages.success(request, f"Sales status updated for {product.sku}.")
+    return redirect('product_batches', pk=product.pk)
+
+
+@login_required(login_url='login')
+
+    batch = get_object_or_404(StockBatch.objects.select_related('sku'), pk=batch_id)
+    product_id = batch.sku_id
+    if request.method == 'POST':
+        batch.delete()
+        messages.success(request, 'Batch deleted.')
+    return redirect('product_batches', pk=product_id)
+
+
+@login_required(login_url='login')
     return render(request, 'sku_manager/product_batches.html', {
+    item = get_object_or_404(JewelrySKU, pk=pk)
+    item.sync_stock_from_batches()
+    return JsonResponse({'stock': item.stock})
+
+
         'item': item,
         'product': item,
         'batches': batches,

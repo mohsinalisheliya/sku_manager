@@ -62,6 +62,82 @@ def user_logout(request):
     return redirect('login')
 
 # --- PART 1: Product Master (Add Form + Listing Table) ---
+# sku_manager/views.py
+
+@login_required(login_url='login')
+def product_master(request, pk=None):
+    """
+    Unified Product Studio: Handles both Add New Product & Edit Product Details
+    """
+    is_edit = pk is not None
+    product = get_object_or_404(JewelrySKU, pk=pk) if is_edit else None
+
+    if request.method == 'POST':
+        category = request.POST.get('category', '').strip().upper()
+        style = request.POST.get('style', '').strip().upper()
+        name = request.POST.get('name', '').strip().upper()
+        design_model = request.POST.get('design_model', '').strip()
+        color = request.POST.get('color', '').strip().upper()
+        size = request.POST.get('size', '').strip().upper()
+        number = request.POST.get('number', '').strip()
+
+        if not name:
+            messages.error(request, "Product name is required.")
+        else:
+            if is_edit:
+                # Update existing product
+                product.category = category or product.category
+                product.style = style or product.style
+                product.name = name or product.name
+                product.design_model = design_model
+                product.color = color or product.color
+                product.size = size or product.size
+                if number:
+                    product.number = number.zfill(3) if number.isdigit() and len(number) < 3 else number
+
+                if request.FILES.get('image'):
+                    product.image = request.FILES['image']
+
+                product.save()
+                messages.success(request, f"✓ Product '{product.sku}' updated successfully!")
+                return redirect('product_list')
+            else:
+                # Create new product
+                if not number:
+                    number = get_next_serial()
+                number = number.zfill(3) if number.isdigit() and len(number) < 3 else number
+
+                new_product = JewelrySKU(
+                    category=category or 'GEN',
+                    style=style or 'STD',
+                    name=name,
+                    design_model=design_model,
+                    color=color or 'BLK',
+                    size=size or 'FREE',
+                    number=number,
+                    image=request.FILES.get('image'),
+                    stock=0
+                )
+                new_product.save()
+                messages.success(request, f"✓ Product created successfully! SKU: {new_product.sku}")
+                return redirect('product_master')
+
+    # Exclude current SKU from duplicate detection during edit
+    if is_edit:
+        existing_skus = list(JewelrySKU.objects.exclude(pk=pk).values_list('sku', flat=True))
+    else:
+        existing_skus = list(JewelrySKU.objects.values_list('sku', flat=True))
+
+    products_count = JewelrySKU.objects.count()
+
+    return render(request, 'sku_manager/products.html', {
+        'is_edit': is_edit,
+        'product': product,
+        'existing_skus': existing_skus,
+        'next_serial': product.number if is_edit else get_next_serial(),
+        'products_count': products_count,
+        'active_page': 'products',
+    })
 
 @login_required(login_url='login')
 def product_edit_details(request, pk):

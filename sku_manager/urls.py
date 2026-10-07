@@ -14,6 +14,7 @@ urlpatterns = [
     path('products/list/', views.product_list_view, name='product_list'),
     path('products/edit/<int:pk>/', views.product_edit_details, name='product_edit_details'),
     path('products/delete/<int:pk>/', views.product_delete_secure, name='product_delete_secure'),
+    
     # Part 2: Inventory & Stock Management
     path('', views.inventory_list, name='inventory_list'),
     path('inventory/', views.inventory_list, name='sku_inventory'), # Alias for compatibility

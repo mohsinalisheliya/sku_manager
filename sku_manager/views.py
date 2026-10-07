@@ -62,7 +62,6 @@ def user_logout(request):
     return redirect('login')
 
 # --- PART 1: Product Master (Add Form + Listing Table) ---
-# sku_manager/views.py
 
 @login_required(login_url='login')
 def product_master(request, pk=None):

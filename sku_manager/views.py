@@ -349,6 +349,31 @@ def stock_action(request, pk):
         'active_page': 'inventory',
     })
 
+
+@login_required(login_url='login')
+def product_batches_view(request, pk):
+    item = get_object_or_404(JewelrySKU, pk=pk)
+    item.sync_stock_from_batches()
+
+    batches = item.batches.select_related('storage_box').order_by('-created_at')
+    active_units = sum(batch.quantity for batch in batches if batch.status == 'active')
+    platforms = get_or_seed_platforms()
+    platform_prices = {price.platform_id: price.price for price in item.platform_prices.all()}
+
+    return render(request, 'sku_manager/product_batches.html', {
+        'item': item,
+        'product': item,
+        'batches': batches,
+        'active_units': active_units,
+        'total_batches': batches.count(),
+        'boxes': get_all_boxes(),
+        'platforms': platforms,
+        'platform_prices': platform_prices,
+        'suggested_batch': f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}",
+        'active_page': 'inventory',
+    })
+
+
 # --- Storage Units & Platforms ---
 @login_required(login_url='login')
 def box_manager(request):

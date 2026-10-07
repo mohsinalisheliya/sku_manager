@@ -1,5 +1,7 @@
 # sku_manager/models.py
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 import re
 
 class Platform(models.Model):
@@ -22,7 +24,6 @@ class StorageBox(models.Model):
         return self.name
 
 class JewelrySKU(models.Model):
-    # 1. Product Attributes
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=50, default='General')
     style = models.CharField(max_length=50, blank=True, default='Standard')
@@ -34,13 +35,12 @@ class JewelrySKU(models.Model):
     image = models.ImageField(upload_to='products/', null=True, blank=True)
     is_listed = models.BooleanField(default=True)
 
-    # 2. Direct Stock & Location (No complex batches needed)
+    # Aggregated Live Stock (Sum of all Activated batches)
     batch_no = models.CharField(max_length=50, blank=True, default='')
     stock = models.PositiveIntegerField(default=0)
     storage_box = models.ForeignKey(StorageBox, on_delete=models.SET_NULL, null=True, blank=True, related_name='skus')
     section_name = models.CharField(max_length=50, blank=True, default='Main Slot')
 
-    # 3. Base Pricing
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
@@ -50,8 +50,45 @@ class JewelrySKU(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+    def sync_stock_from_batches(self):
+        """Calculates total active stock, auto-disactivates 0-unit batches, and purges >30 day records"""
+        now = timezone.now()
+        
+        # 1. Check if any active batch ran out of stock -> Mark Disactivated & set finished timestamp
+        for b in self.batches.all():
+            if b.quantity == 0 and b.status == 'active':
+                b.status = 'disabled'
+                if not b.finished_at:
+                    b.finished_at = now
+                b.save(update_fields=['status', 'finished_at', 'updated_at'])
+            elif b.quantity > 0 and b.status == 'disabled':
+                # If restocked, re-activate
+                b.status = 'active'
+                b.finished_at = None
+                b.save(update_fields=['status', 'finished_at', 'updated_at'])
+
+        # 2. Delete batches that finished more than 30 days ago
+        cutoff_date = now - timedelta(days=30)
+        self.batches.filter(status='disabled', finished_at__lte=cutoff_date).delete()
+
+        # 3. Sum up all 'Activated' batches
+        total_active_stock = self.batches.filter(status='active').aggregate(models.Sum('quantity'))['quantity__sum'] or 0
+        self.stock = max(0, total_active_stock)
+
+        # 4. Cache latest active batch metadata
+        latest = self.batches.filter(status='active').order_by('-created_at').first() or self.batches.order_by('-created_at').first()
+        if latest:
+            self.purchase_price = latest.purchase_price
+            self.selling_price = latest.selling_price
+            self.batch_no = latest.batch_no
+            if latest.storage_box:
+                self.storage_box = latest.storage_box
+            if latest.section_name:
+                self.section_name = latest.section_name
+
+        self.save(update_fields=['stock', 'purchase_price', 'selling_price', 'batch_no', 'storage_box', 'section_name', 'updated_at'])
+
     def save(self, *args, **kwargs):
-        # Clean 6-Segment Standard SKU: CAT-STY-NAME-COL-SIZE-NUM
         clean_cat = re.sub(r'[^A-Z0-9]', '', self.category.upper()) or 'GEN'
         clean_sty = re.sub(r'[^A-Z0-9]', '', self.style.upper()) or 'STD'
         clean_name = re.sub(r'[^A-Z0-9]', '', self.name.upper()) or 'ITEM'
@@ -66,6 +103,38 @@ class JewelrySKU(models.Model):
 
     def __str__(self):
         return f"{self.sku} ({self.name})"
+
+class StockBatch(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Activated'),
+        ('disabled', 'Disactivated'),
+    ]
+
+    sku = models.ForeignKey(JewelrySKU, on_delete=models.CASCADE, related_name='batches')
+    batch_no = models.CharField(max_length=50)
+    quantity = models.PositiveIntegerField(default=0)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    storage_box = models.ForeignKey(StorageBox, on_delete=models.SET_NULL, null=True, blank=True)
+    section_name = models.CharField(max_length=50, blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @property
+    def days_until_deletion(self):
+        """Returns days remaining out of the 30-day retention period if finished"""
+        if self.finished_at:
+            elapsed = (timezone.now() - self.finished_at).days
+            return max(0, 30 - elapsed)
+        return 30
+
+    def __str__(self):
+        return f"{self.sku.sku} - {self.batch_no} ({self.quantity} units)"
 
 class PlatformPrice(models.Model):
     sku = models.ForeignKey(JewelrySKU, on_delete=models.CASCADE, related_name='platform_prices')

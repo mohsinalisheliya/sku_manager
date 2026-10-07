@@ -139,6 +139,7 @@ def product_master(request, pk=None):
         'active_page': 'products',
     })
 
+
 @login_required(login_url='login')
 def product_edit_details(request, pk):
     product = get_object_or_404(JewelrySKU, pk=pk)

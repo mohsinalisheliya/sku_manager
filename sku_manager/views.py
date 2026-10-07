@@ -357,8 +357,25 @@ def product_batches_view(request, pk):
 
     batches = item.batches.select_related('storage_box').order_by('-created_at')
     active_units = sum(batch.quantity for batch in batches if batch.status == 'active')
-@login_required(login_url='login')
     platforms = get_or_seed_platforms()
+    platform_prices = {price.platform_id: price.price for price in item.platform_prices.all()}
+
+    return render(request, 'sku_manager/product_batches.html', {
+        'item': item,
+        'product': item,
+        'batches': batches,
+        'active_units': active_units,
+        'total_batches': batches.count(),
+        'boxes': get_all_boxes(),
+        'platforms': platforms,
+        'platform_prices': platform_prices,
+        'suggested_batch': f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}",
+        'active_page': 'inventory',
+    })
+
+
+@login_required(login_url='login')
+def update_universal_threshold(request):
     if request.method == 'POST':
         raw_threshold = request.POST.get('low_stock_threshold', '').strip()
         if raw_threshold.isdigit() and int(raw_threshold) >= 1:
@@ -372,7 +389,7 @@ def product_batches_view(request, pk):
 
 
 @login_required(login_url='login')
-    platform_prices = {price.platform_id: price.price for price in item.platform_prices.all()}
+def toggle_product_status(request, pk):
     product = get_object_or_404(JewelrySKU, pk=pk)
     if request.method == 'POST':
         product.is_listed = not product.is_listed
@@ -382,7 +399,7 @@ def product_batches_view(request, pk):
 
 
 @login_required(login_url='login')
-
+def delete_batch(request, batch_id):
     batch = get_object_or_404(StockBatch.objects.select_related('sku'), pk=batch_id)
     product_id = batch.sku_id
     if request.method == 'POST':
@@ -392,23 +409,10 @@ def product_batches_view(request, pk):
 
 
 @login_required(login_url='login')
-    return render(request, 'sku_manager/product_batches.html', {
+def last_stock_api(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
     item.sync_stock_from_batches()
     return JsonResponse({'stock': item.stock})
-
-
-        'item': item,
-        'product': item,
-        'batches': batches,
-        'active_units': active_units,
-        'total_batches': batches.count(),
-        'boxes': get_all_boxes(),
-        'platforms': platforms,
-        'platform_prices': platform_prices,
-        'suggested_batch': f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}",
-        'active_page': 'inventory',
-    })
 
 
 # --- Storage Units & Platforms ---

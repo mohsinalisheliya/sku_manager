@@ -10,11 +10,13 @@ urlpatterns = [
     # sku_manager/urls.py ke urlpatterns me add karein:
 
     # Part 1: Product Master, Listing & Secure Delete
+# sku_manager/urls.py ke urlpatterns me:
+
+    # Unified Product Master (Handles both Add & Edit)
     path('products/', views.product_master, name='product_master'),
+    path('products/edit/<int:pk>/', views.product_master, name='product_edit_details'),
     path('products/list/', views.product_list_view, name='product_list'),
-    path('products/edit/<int:pk>/', views.product_edit_details, name='product_edit_details'),
     path('products/delete/<int:pk>/', views.product_delete_secure, name='product_delete_secure'),
-    
     # Part 2: Inventory & Stock Management
     path('', views.inventory_list, name='inventory_list'),
     path('inventory/', views.inventory_list, name='sku_inventory'), # Alias for compatibility

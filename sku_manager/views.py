@@ -169,26 +169,45 @@ def product_edit_details(request, pk):
 
 
 @login_required(login_url='login')
+# sku_manager/views.py ke andar product_list_view ko replace karein:
+
+@login_required(login_url='login')
 def product_list_view(request):
-    """Dedicated standalone product listing page."""
+    """Product Listing with Search & Server-Side Pagination"""
     search_query = request.GET.get('q', '').strip()
+    limit_raw = request.GET.get('limit', '10')
+
+    try:
+        limit = int(limit_raw)
+    except (ValueError, TypeError):
+        limit = 10
+    limit = max(5, min(limit, 100))
+
     products = JewelrySKU.objects.all().order_by('-created_at')
 
     if search_query:
         products = products.filter(
             Q(sku__icontains=search_query) |
             Q(name__icontains=search_query) |
-            Q(category__icontains=search_query)
+            Q(category__icontains=search_query) |
+            Q(style__icontains=search_query) |
+            Q(color__icontains=search_query) |
+            Q(design_model__icontains=search_query)
         )
 
+    total_count = products.count()
+    paginator = Paginator(products, limit)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'sku_manager/product_list.html', {
-        'products': products,
+        'products': page_obj,
+        'page_obj': page_obj,
         'search_query': search_query,
-        'total_count': products.count(),
+        'limit': limit,
+        'total_count': total_count,
         'active_page': 'products',
     })
-
-
 @login_required(login_url='login')
 def product_delete_secure(request, pk):
     """Delete a product only after confirming the current user's password."""

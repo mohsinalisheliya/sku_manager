@@ -40,6 +40,9 @@
       <svg class="w-4 h-4 text-emerald-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
       <span>Point camera at any jewelry product tag QR code...</span>
     </div>
+    <div id="cameraRetryArea" class="hidden text-center">
+      <button type="button" id="retryCamera" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition">Retry Camera</button>
+    </div>
 
     <!-- Manual Fallback Input Box -->
     <div class="border-t border-slate-800 pt-3">
@@ -106,6 +109,26 @@
   }
 
   function startScanner() {
+    const status = document.getElementById('scannerStatus');
+    const retryArea = document.getElementById('cameraRetryArea');
+
+    if (!window.isSecureContext) {
+      status.innerHTML = '<span class="text-rose-400">Camera requires HTTPS on mobile. Open this site using its secure HTTPS address; plain HTTP on a phone cannot access the camera.</span>';
+      retryArea.classList.add('hidden');
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      status.innerHTML = '<span class="text-rose-400">This browser does not provide camera access. Open the page in an updated Chrome or Safari browser.</span>';
+      retryArea.classList.add('hidden');
+      return;
+    }
+    if (typeof Html5Qrcode === 'undefined') {
+      status.innerHTML = '<span class="text-rose-400">The scanner library did not load. Check your internet connection and reload this page.</span>';
+      retryArea.classList.add('hidden');
+      return;
+    }
+
+    retryArea.classList.add('hidden');
     html5QrcodeScanner = new Html5Qrcode("reader");
 
     const config = {
@@ -128,9 +151,21 @@
         // Continuous scan loop frame misses are normal
       }
     ).catch(err => {
-      document.getElementById('scannerStatus').innerHTML = `
-        <span class="text-rose-400">Camera error: Please allow camera permissions in browser settings.</span>
-      `;
+      const errorName = err && err.name;
+      let message = 'Camera could not start.';
+      if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+        message = 'Camera access was denied. Allow camera permission for this site in your browser settings, then retry.';
+      } else if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') {
+        message = 'No camera was found on this device.';
+      } else if (errorName === 'NotReadableError' || errorName === 'TrackStartError') {
+        message = 'The camera is busy in another app. Close other camera apps and retry.';
+      } else if (errorName === 'OverconstrainedError') {
+        message = 'The requested camera is unavailable. Check that your camera is working, then retry.';
+      } else if (err && err.message) {
+        message += ` ${err.message}`;
+      }
+      status.innerHTML = `<span class="text-rose-400">${message}</span>`;
+      retryArea.classList.remove('hidden');
     });
   }
 
@@ -146,6 +181,7 @@
   window.addEventListener('DOMContentLoaded', () => {
     startScanner();
   });
+  document.getElementById('retryCamera').addEventListener('click', startScanner);
 
   // Stop camera when navigating away to save battery
   window.addEventListener('beforeunload', () => {

@@ -2,6 +2,8 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from polars import Decimal
+from unittest.mock import patch
+import qrcode
 
 from .models import DispatchLog, JewelrySKU, Platform, PlatformPrice, StockBatch, StorageBox
 from .views import COLOR_PALETTE
@@ -227,6 +229,23 @@ class LabelPrintingTests(TestCase):
 		self.assertContains(response, 'NEW-LABEL')
 		self.assertContains(response, 'Tray 7')
 		self.assertContains(response, 'data:image/png;base64,')
+		self.assertEqual(response.context['qr_payload'], self.item.sku)
+
+	def test_label_and_download_qr_encode_only_the_sku(self):
+		payloads = []
+		original_add_data = qrcode.QRCode.add_data
+
+		def capture_payload(qr, data, *args, **kwargs):
+			payloads.append(data)
+			return original_add_data(qr, data, *args, **kwargs)
+
+		with patch('sku_manager.views.qrcode.QRCode.add_data', autospec=True, side_effect=capture_payload):
+			label_response = self.client.get(self.url)
+			download_response = self.client.get(reverse('sku_qr_download', args=[self.item.pk]))
+
+		self.assertEqual(label_response.status_code, 200)
+		self.assertEqual(download_response.status_code, 200)
+		self.assertEqual(payloads, [self.item.sku, self.item.sku])
 
 	def test_inventory_has_print_label_action_for_each_sku(self):
 		response = self.client.get(reverse('inventory_list'))

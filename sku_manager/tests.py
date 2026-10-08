@@ -173,6 +173,9 @@ class ProductDetailTests(TestCase):
 		self.assertEqual(response.context['total_units_sold'], 1)
 		self.assertEqual(float(response.context['total_revenue']), 9.0)
 		self.assertEqual(response.context['units_30d'], 1)
+		platform_sales = response.context['by_platform'][0]
+		self.assertEqual(platform_sales['first_sale'], response.context['last_dispatch'].dispatched_at)
+		self.assertEqual(platform_sales['last_sale'], response.context['last_dispatch'].dispatched_at)
 		self.assertContains(response, 'On Hold')
 
 	def test_list_status_toggle_returns_to_safe_next_path(self):

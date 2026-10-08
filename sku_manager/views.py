@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Q, Count, OuterRef, Subquery, Sum, F, DecimalField, ExpressionWrapper
+from django.db.models import Q, Count, OuterRef, Subquery, Sum, Max, Min, F, DecimalField, ExpressionWrapper
 from django.urls import reverse, NoReverseMatch
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
@@ -331,9 +331,11 @@ def product_detail(request, pk):
     days_left = int(sellable_units / (units_30d / 30)) if units_30d and sellable_units else None
 
     by_platform = (logs.values('platform_name')
-                   .annotate(units=Sum('quantity'), revenue=Sum(line_total))
+                   .annotate(units=Sum('quantity'), revenue=Sum(line_total),
+                             last_sale=Max('dispatched_at'), first_sale=Min('dispatched_at'))
                    .order_by('-units'))
     recent_logs = logs.select_related('platform')[:10]
+    last_dispatch = logs.first()
 
     return render(request, 'sku_manager/product_detail.html', {
         'item': item,
@@ -353,6 +355,7 @@ def product_detail(request, pk):
         'days_left': days_left,
         'by_platform': by_platform,
         'recent_logs': recent_logs,
+        'last_dispatch': last_dispatch,
         'edit_url': _safe_reverse('product_edit_details', item.pk) or _safe_reverse('product_edit', item.pk),
         'label_url': _safe_reverse('sku_print_label', item.pk),
         'qr_url': _safe_reverse('sku_qr_download', item.pk),

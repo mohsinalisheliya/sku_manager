@@ -2,7 +2,8 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from .models import DispatchLog, JewelrySKU, Platform, StockBatch
+from .models import DispatchLog, JewelrySKU, Platform, StockBatch, StorageBox
+from .views import COLOR_PALETTE
 
 
 class SalesHoldTests(TestCase):
@@ -78,3 +79,49 @@ class SalesHoldTests(TestCase):
 		self.item.refresh_from_db()
 		self.assertTrue(batch.sales_enabled)
 		self.assertEqual(self.item.stock, 4)
+
+
+class BoxManagerColorTests(TestCase):
+	def setUp(self):
+		user = get_user_model().objects.create_user(username='box-user', password='test-password')
+		self.client.force_login(user)
+		self.url = reverse('box_manager')
+
+	def test_palette_contains_72_unique_swatches_and_marks_used_colors(self):
+		used_color = COLOR_PALETTE[0]
+		StorageBox.objects.create(name='Existing Box', color_tag=used_color)
+
+		response = self.client.get(self.url)
+
+		self.assertEqual(len(COLOR_PALETTE), 72)
+		self.assertEqual(len(set(COLOR_PALETTE)), 72)
+		swatches = response.context['color_swatches']
+		self.assertEqual(len(swatches), 72)
+		used_swatch = next(swatch for swatch in swatches if swatch['hex'] == used_color)
+		self.assertTrue(used_swatch['is_taken'])
+		self.assertEqual(used_swatch['used_by'], 'Existing Box')
+
+	def test_creates_box_with_valid_custom_color(self):
+		response = self.client.post(self.url, {
+			'box_name': 'Custom Box',
+			'color_tag': '#123456',
+			'description': 'Test location',
+		})
+
+		self.assertRedirects(response, self.url)
+		self.assertTrue(StorageBox.objects.filter(name='Custom Box', color_tag='#123456').exists())
+
+	def test_rejects_invalid_color_duplicate_name_and_duplicate_color(self):
+		StorageBox.objects.create(name='Existing Box', color_tag='#A1B2C3')
+		invalid_submissions = [
+			{'box_name': 'Invalid Color', 'color_tag': 'not-a-color'},
+			{'box_name': 'existing box', 'color_tag': '#123456'},
+			{'box_name': 'Duplicate Color', 'color_tag': '#A1B2C3'},
+		]
+
+		for submission in invalid_submissions:
+			with self.subTest(submission=submission):
+				response = self.client.post(self.url, submission)
+				self.assertRedirects(response, self.url)
+
+		self.assertEqual(StorageBox.objects.count(), 1)

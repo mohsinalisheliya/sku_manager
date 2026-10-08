@@ -2,6 +2,7 @@
 import csv
 import io
 import base64
+import colorsys
 import re
 import qrcode
 from datetime import datetime
@@ -20,6 +21,19 @@ from django.utils import timezone
 from .models import JewelrySKU, Platform, PlatformPrice, StorageBox, StockBatch, DispatchLog, AppSettings
 
 DEFAULT_PLATFORMS = ['Flipkart', 'Amazon', 'Meesho', 'Website']
+
+
+def build_color_palette():
+    colors = []
+    for saturation, lightness in [(0.85, 0.55), (0.75, 0.45), (0.90, 0.65), (0.60, 0.35), (0.50, 0.75), (0.95, 0.50)]:
+        for hue in range(0, 360, 30):
+            red, green, blue = colorsys.hls_to_rgb(hue / 360, lightness, saturation)
+            colors.append('#%02X%02X%02X' % (round(red * 255), round(green * 255), round(blue * 255)))
+    return colors
+
+
+COLOR_PALETTE = build_color_palette()
+
 
 def get_or_seed_platforms():
     if not Platform.objects.exists():
@@ -421,20 +435,36 @@ def last_stock_api(request, pk):
 # --- Storage Units & Platforms ---
 @login_required(login_url='login')
 def box_manager(request):
-    existing_boxes = StorageBox.objects.annotate(total_skus=Count('skus')).order_by('name')
+    used_colors_map = {box.color_tag.upper(): box.name for box in StorageBox.objects.all()}
+
     if request.method == 'POST':
         name = request.POST.get('box_name', '').strip()
         color_tag = request.POST.get('color_tag', '#3B82F6').strip().upper()
         description = request.POST.get('description', '').strip()
-        if name:
-            StorageBox.objects.get_or_create(name=name, defaults={'color_tag': color_tag, 'description': description})
+
+        if not name:
+            messages.error(request, 'Unit name is required.')
+        elif not re.match(r'^#[0-9A-F]{6}$', color_tag):
+            messages.error(request, 'Pick a valid color (like #3B82F6).')
+        elif StorageBox.objects.filter(name__iexact=name).exists():
+            messages.error(request, f"A storage unit named '{name}' already exists.")
+        elif color_tag in used_colors_map:
+            messages.error(request, f"That color is already used by '{used_colors_map[color_tag]}'.")
+        else:
+            StorageBox.objects.create(name=name, color_tag=color_tag, description=description)
             messages.success(request, f"Storage unit '{name}' created!")
-            return redirect('box_manager')
+        return redirect('box_manager')
+
+    color_swatches = [
+        {'hex': color, 'is_taken': color in used_colors_map, 'used_by': used_colors_map.get(color, '')}
+        for color in COLOR_PALETTE
+    ]
+    existing_boxes = StorageBox.objects.annotate(total_skus=Count('skus')).order_by('name')
 
     return render(request, 'sku_manager/boxes.html', {
         'boxes': existing_boxes,
-        'color_swatches': [],
-        'used_colors_map': {},
+        'color_swatches': color_swatches,
+        'used_colors_map': used_colors_map,
         'active_page': 'boxes',
     })
 

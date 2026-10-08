@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from .models import DispatchLog, JewelrySKU, Platform, StockBatch, StorageBox
+from .models import DispatchLog, JewelrySKU, Platform, PlatformPrice, StockBatch, StorageBox
 from .views import COLOR_PALETTE
 
 
@@ -125,3 +125,69 @@ class BoxManagerColorTests(TestCase):
 				self.assertRedirects(response, self.url)
 
 		self.assertEqual(StorageBox.objects.count(), 1)
+
+
+class ProductDetailTests(TestCase):
+	def setUp(self):
+		user = get_user_model().objects.create_user(username='detail-user', password='test-password')
+		self.client.force_login(user)
+		self.item = JewelrySKU.objects.create(name='Detail Test Product')
+		self.platform = Platform.objects.create(name='Detail Platform')
+		self.url = reverse('product_detail', args=[self.item.pk])
+
+	def test_detail_page_shows_batch_stock_and_sales_metrics(self):
+		StockBatch.objects.create(
+			sku=self.item,
+			batch_no='SELL-DETAIL',
+			quantity=2,
+			purchase_price='5.00',
+			selling_price='10.00',
+		)
+		StockBatch.objects.create(
+			sku=self.item,
+			batch_no='HOLD-DETAIL',
+			quantity=3,
+			purchase_price='6.00',
+			selling_price='12.00',
+			sales_enabled=False,
+		)
+		PlatformPrice.objects.create(sku=self.item, platform=self.platform, price='8.00')
+		DispatchLog.objects.create(
+			sku=self.item,
+			platform=self.platform,
+			platform_name=self.platform.name,
+			quantity=1,
+			sold_price='9.00',
+			stock_after=1,
+		)
+
+		response = self.client.get(self.url)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertTemplateUsed(response, 'sku_manager/product_detail.html')
+		self.assertEqual(response.context['sellable_units'], 2)
+		self.assertEqual(response.context['held_units'], 3)
+		self.assertEqual(response.context['cost_value'], Decimal('10.00'))
+		self.assertEqual(response.context['retail_value'], Decimal('20.00'))
+		self.assertEqual(response.context['total_units_sold'], 1)
+		self.assertEqual(response.context['total_revenue'], Decimal('9.00'))
+		self.assertEqual(response.context['units_30d'], 1)
+		self.assertContains(response, 'On Hold')
+
+	def test_list_status_toggle_returns_to_safe_next_path(self):
+		response = self.client.post(
+			reverse('toggle_product_status', args=[self.item.pk]),
+			{'next': self.url},
+		)
+
+		self.assertRedirects(response, self.url)
+		self.item.refresh_from_db()
+		self.assertFalse(self.item.is_listed)
+
+	def test_list_status_toggle_rejects_external_next_path(self):
+		response = self.client.post(
+			reverse('toggle_product_status', args=[self.item.pk]),
+			{'next': '//example.com/unsafe'},
+		)
+
+		self.assertRedirects(response, reverse('product_batches', args=[self.item.pk]))

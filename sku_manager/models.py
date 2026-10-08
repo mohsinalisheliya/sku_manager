@@ -71,7 +71,9 @@ class JewelrySKU(models.Model):
         self.batches.filter(status='disabled', finished_at__lte=cutoff_date).delete()
 
         # 3. Sum active units
-        total_active = self.batches.filter(status='active').aggregate(models.Sum('quantity'))['quantity__sum'] or 0
+        total_active = (self.batches
+                .filter(status='active', sales_enabled=True)
+                .aggregate(models.Sum('quantity'))['quantity__sum'] or 0)
         self.stock = max(0, total_active)
 
         # 4. Cache latest active batch details
@@ -118,6 +120,7 @@ class StockBatch(models.Model):
     section_name = models.CharField(max_length=50, blank=True, default='Main Section')
     supplier_name = models.CharField(max_length=100, blank=True, default='Primary Supplier')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    sales_enabled = models.BooleanField(default=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

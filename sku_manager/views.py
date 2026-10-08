@@ -343,7 +343,8 @@ def product_batches_view(request, pk):
     item.sync_stock_from_batches()
 
     batches = item.batches.select_related('storage_box').order_by('-created_at')
-    active_units = sum(batch.quantity for batch in batches if batch.status == 'active')
+    active_units = sum(b.quantity for b in batches if b.status == 'active' and b.sales_enabled)
+    held_units = sum(b.quantity for b in batches if b.status == 'active' and not b.sales_enabled)
     platforms = get_or_seed_platforms()
     platform_prices = {price.platform_id: price.price for price in item.platform_prices.all()}
 
@@ -352,6 +353,7 @@ def product_batches_view(request, pk):
         'product': item,
         'batches': batches,
         'active_units': active_units,
+        'held_units': held_units,
         'total_batches': batches.count(),
         'boxes': get_all_boxes(),
         'platforms': platforms,
@@ -393,6 +395,20 @@ def delete_batch(request, batch_id):
         batch.delete()
         messages.success(request, 'Batch deleted.')
     return redirect('product_batches', pk=product_id)
+
+
+@login_required(login_url='login')
+def toggle_batch_sales(request, batch_id):
+    batch = get_object_or_404(StockBatch.objects.select_related('sku'), pk=batch_id)
+    if request.method == 'POST':
+        batch.sales_enabled = not batch.sales_enabled
+        batch.save(update_fields=['sales_enabled', 'updated_at'])
+        batch.sku.sync_stock_from_batches()
+        if batch.sales_enabled:
+            messages.success(request, f"Batch '{batch.batch_no}' enabled - units can be sold again.")
+        else:
+            messages.warning(request, f"Batch '{batch.batch_no}' disabled - its units cannot be sold.")
+    return redirect('product_batches', pk=batch.sku_id)
 
 
 @login_required(login_url='login')
@@ -462,7 +478,7 @@ def scan_dispatch(request, sku):
 
         with transaction.atomic():
             active_batch = item.batches.select_for_update().filter(
-                status='active', quantity__gt=0
+                status='active', sales_enabled=True, quantity__gt=0
             ).order_by('created_at').first()
             if not active_batch:
                 item.sync_stock_from_batches()

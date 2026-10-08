@@ -26,6 +26,7 @@ urlpatterns = [
     # Product Batches Timeline (Matches product_stock_list.html)
     path('inventory/product/<int:pk>/batches/', views.product_batches_view, name='product_batches'),
     path('inventory/product/toggle-status/<int:pk>/', views.toggle_product_status, name='toggle_product_status'),
+    path('batch/<int:batch_id>/toggle-sales/', views.toggle_batch_sales, name='toggle_batch_sales'),
     path('inventory/batch/delete/<int:batch_id>/', views.delete_batch, name='delete_batch'),
     path('inventory/api/last-stock/<int:pk>/', views.last_stock_api, name='last_stock_api'),
 

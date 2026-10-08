@@ -85,9 +85,18 @@
                 data-stock="{{ item.stock }}" data-name="{{ item.name|lower }}" data-sku="{{ item.sku|lower }}">
               <td class="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">{{ item.sku }}</td>
 
-              <td class="py-3.5 px-4 font-extrabold text-slate-900 dark:text-white">
-                <div>{{ item.name }}</div>
-                <div class="text-[10px] text-slate-400 font-normal">{{ item.category }} • {{ item.color }} • {{ item.size }}</div>
+              <td class="py-3 px-4">
+                <div class="flex items-center gap-3">
+                  {% if item.image %}
+                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0">
+                  {% else %}
+                    <div class="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-lg shrink-0">💎</div>
+                  {% endif %}
+                  <div>
+                    <div class="font-extrabold text-slate-900 dark:text-white">{{ item.name }}</div>
+                    <div class="text-[10px] text-slate-400 font-normal">{{ item.category }} • {{ item.color }} • {{ item.size }}</div>
+                  </div>
+                </div>
               </td>
 
               <td class="py-3.5 px-4 text-center">
@@ -101,14 +110,14 @@
               </td>
 
               <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
-                <a href="{% url 'product_batches' item.pk %}"
-                   class="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-lg font-bold transition">
-                  📋 Batches ({{ item.active_batches }}/{{ item.total_batches }})
-                </a>
+                {% if item.edit_batch_id %}
+                  <a href="{% url 'stock_action' item.pk %}?edit_batch={{ item.edit_batch_id }}"
+                     class="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-lg font-bold transition">✏️ Edit</a>
+                {% else %}
+                  <span class="inline-flex items-center gap-1 bg-slate-50 dark:bg-slate-900 text-slate-400 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg font-bold cursor-not-allowed" title="No active batch to edit">✏️ Edit</span>
+                {% endif %}
                 <a href="{% url 'stock_action' item.pk %}"
-                   class="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-1.5 rounded-lg font-black transition shadow-xs">
-                  + Add / Edit Stock
-                </a>
+                   class="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-1.5 rounded-lg font-black transition shadow-xs">+ Add</a>
               </td>
             </tr>
           {% empty %}

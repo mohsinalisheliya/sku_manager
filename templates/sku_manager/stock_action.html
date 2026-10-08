@@ -1,77 +1,107 @@
 {% extends "sku_manager/base.html" %}
 
-{% block title %}Stock: {{ item.name }} - Tatkal Pick{% endblock %}
+{% block title %}Manage Stock & Batches: {{ item.name }} - Tatkal Pick{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto space-y-6">
+<div class="max-w-4xl mx-auto space-y-6">
 
   <header class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
     <div>
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold uppercase tracking-wider mb-1.5">
-        <span>📦</span> Stock Manager
+        <span>📦</span> Multi-Batch Stock Manager
       </div>
       <h1 class="text-2xl font-black text-slate-900 dark:text-white">{{ item.name }}</h1>
-      <p class="text-xs text-slate-500 font-mono mt-0.5">SKU: {{ item.sku }} • Current Stock: <strong class="text-emerald-600 font-bold">{{ item.stock }} Units</strong></p>
+      <p class="text-xs text-slate-500 font-mono mt-0.5">SKU: {{ item.sku }} • Total Live Stock: <strong class="text-emerald-600 font-bold">{{ item.stock }} Units</strong></p>
     </div>
-    <a href="{% url 'inventory_list' %}" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-4 py-2 rounded-xl text-xs transition">← Inventory</a>
+    <div class="flex items-center gap-2.5">
+      <a href="{% url 'product_batches' item.pk %}" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm flex items-center gap-1.5">
+        <span>📋 View Batch List</span>
+        <span class="bg-blue-700/80 px-2 py-0.5 rounded-lg text-[10px] font-mono">{{ all_batches_count }}</span>
+        <span>→</span>
+      </a>
+      <a href="{% url 'inventory_list' %}" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold px-4 py-2 rounded-xl text-xs transition">← Inventory</a>
+    </div>
   </header>
 
-  <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-3xl p-6 shadow-sm">
+  <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-3xl p-6 shadow-sm space-y-5">
     <form method="POST" class="space-y-5">
       {% csrf_token %}
 
-      <!-- Mode: add or set -->
+      <!-- Mode tabs. Switching is done by navigation so the form is always filled with the right data -->
       <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700">
-        <label class="flex items-center justify-center py-2.5 rounded-xl text-xs font-bold cursor-pointer select-none has-[:checked]:bg-emerald-500 has-[:checked]:text-white text-slate-600 dark:text-slate-400">
-          <input type="radio" name="mode" value="add" {% if mode == 'add' %}checked{% endif %} class="hidden">
-          <span>+ Add Stock</span>
+        <label class="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition select-none has-[:checked]:bg-emerald-500 has-[:checked]:text-white text-slate-600 dark:text-slate-400">
+          <input type="radio" name="action_mode" value="new_batch" {% if not is_edit %}checked{% endif %} onclick="window.location.href='{% url 'stock_action' item.pk %}'" class="hidden">
+          <span>+ Inward New Batch</span>
         </label>
-        <label class="flex items-center justify-center py-2.5 rounded-xl text-xs font-bold cursor-pointer select-none has-[:checked]:bg-amber-500 has-[:checked]:text-slate-950 text-slate-600 dark:text-slate-400">
-          <input type="radio" name="mode" value="set" {% if mode == 'set' %}checked{% endif %} class="hidden">
-          <span>✏️ Edit (Set Exact Stock)</span>
+        <label class="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition select-none has-[:checked]:bg-amber-500 has-[:checked]:text-slate-950 text-slate-600 dark:text-slate-400">
+          <input type="radio" name="action_mode" value="edit_batch" {% if is_edit %}checked{% endif %}
+                 {% if not is_edit %}onclick="{% if active_batches %}window.location.href='?edit_batch={{ active_batches.0.id }}'{% else %}alert('No active batch to edit.'); return false;{% endif %}"{% endif %} class="hidden">
+          <span>✏️ Edit Active Batch</span>
         </label>
       </div>
 
-      <!-- Quantity -->
-      <div>
-        <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">
-          <span id="qtyLabel">Quantity</span> <span class="text-rose-500">*</span>
-        </label>
-        <input type="number" min="0" name="qty" id="qtyInput" required
-          value="{% if mode == 'set' %}{{ item.stock }}{% else %}0{% endif %}"
-          class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
-        <p class="text-xs text-slate-500 mt-1.5">New stock will be: <strong id="preview" class="font-mono text-emerald-600">{{ item.stock }}</strong> units</p>
+      {% if is_edit %}
+      <div class="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl space-y-1">
+        <label class="block text-xs font-bold uppercase text-amber-700 dark:text-amber-400">Select Batch to Modify</label>
+        <select onchange="window.location.href='?edit_batch=' + this.value" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white">
+          {% for b in active_batches %}
+            <option value="{{ b.id }}" {% if selected_batch.id == b.id %}selected{% endif %}>
+              {{ b.batch_no }} ({{ b.quantity }} units left) - Location: {{ b.storage_box.name|default:"No Box" }}
+            </option>
+          {% endfor %}
+          {% if selected_batch.status != 'active' %}
+            <option value="{{ selected_batch.id }}" selected>{{ selected_batch.batch_no }} (finished - edit to re-activate)</option>
+          {% endif %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">Batch Number <span class="text-rose-500">*</span></label>
+          <input type="text" name="batch_no" required
+            value="{% if is_edit %}{{ selected_batch.batch_no }}{% else %}{{ suggested_batch }}{% endif %}"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">
+            {% if is_edit %}Update Batch Stock Quantity{% else %}Inward Batch Quantity{% endif %} <span class="text-rose-500">*</span>
+          </label>
+          <input type="number" min="0" name="stock_qty" required
+            value="{% if is_edit %}{{ selected_batch.quantity }}{% else %}10{% endif %}"
+            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+        </div>
       </div>
 
-      <!-- Prices -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-semibold uppercase text-rose-600 dark:text-rose-400 mb-1">Unit Purchase Cost (₹)</label>
-          <input type="number" step="0.01" min="0" name="purchase_price" value="{{ item.purchase_price }}"
+          <input type="number" step="0.01" min="0" name="purchase_price"
+            value="{% if is_edit %}{{ selected_batch.purchase_price }}{% else %}{{ item.purchase_price }}{% endif %}"
             class="w-full bg-slate-50 dark:bg-slate-900 border border-rose-500/30 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-slate-900 dark:text-white">
         </div>
         <div>
           <label class="block text-xs font-semibold uppercase text-emerald-600 dark:text-emerald-400 mb-1">Standard MRP (₹)</label>
-          <input type="number" step="0.01" min="0" name="selling_price" value="{{ item.selling_price }}"
+          <input type="number" step="0.01" min="0" name="selling_price"
+            value="{% if is_edit %}{{ selected_batch.selling_price }}{% else %}{{ item.selling_price }}{% endif %}"
             class="w-full bg-slate-50 dark:bg-slate-900 border border-emerald-500/30 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-slate-900 dark:text-white">
         </div>
       </div>
 
-      <!-- Marketplace rates -->
       <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-700">
         <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Marketplace Selling Rates</label>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {% for row in platform_rows %}
+          {% for pl in platforms %}
             <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[80px]">{{ row.platform.name }}</span>
-              <input type="number" step="0.01" min="0" name="platform_price_{{ row.platform.id }}" value="{{ row.price }}" placeholder="0.00"
-                class="w-24 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+              <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[80px]">{{ pl.name }}</span>
+              <input type="number" step="0.01" min="0" name="platform_price_{{ pl.id }}"
+                {% for pid, val in current_prices.items %}{% if pid == pl.id %}value="{{ val }}"{% endif %}{% endfor %}
+                placeholder="0.00" class="w-24 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-right font-mono font-bold text-amber-600 dark:text-amber-400">
             </div>
           {% endfor %}
         </div>
       </div>
 
-      <!-- Storage -->
       <div class="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Storage Box & Compartment</label>
@@ -80,30 +110,34 @@
             <label class="cursor-pointer"><input type="radio" name="box_choice" value="new" onchange="toggleBox(true)"><span class="ml-1 text-blue-600 dark:text-blue-400">+ Create New</span></label>
           </div>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div id="prevBoxArea">
             <select name="existing_box_id" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white font-bold">
               <option value="">-- No Box Assigned --</option>
               {% for b in boxes %}
-                <option value="{{ b.id }}" {% if item.storage_box_id == b.id %}selected{% endif %}>📦 {{ b.name }}</option>
+                <option value="{{ b.id }}" {% if is_edit and selected_batch.storage_box_id == b.id %}selected{% elif not is_edit and item.storage_box_id == b.id %}selected{% endif %}>📦 {{ b.name }}</option>
               {% endfor %}
             </select>
           </div>
           <div id="newBoxArea" class="hidden flex items-center gap-2">
-            <input type="text" name="new_box_name" placeholder="New Box Name (e.g. Box 12)"
-              class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white">
+            <input type="text" name="new_box_name" placeholder="New Box Name (e.g. Box 12)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white">
             <input type="color" name="new_box_color" value="#3B82F6" class="w-10 h-10 rounded cursor-pointer border-0 p-0">
           </div>
           <div>
-            <input type="text" name="section_name" value="{{ item.section_name }}" placeholder="Compartment / Slot (e.g. Tray 1, Slot A)"
+            <input type="text" name="section_name"
+              value="{% if is_edit %}{{ selected_batch.section_name }}{% else %}{{ item.section_name }}{% endif %}"
+              placeholder="Compartment / Slot (e.g. Tray 1, Slot A)"
               class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white font-bold">
           </div>
         </div>
       </div>
 
       <div class="flex justify-end pt-3">
-        <button type="submit" id="submitBtn" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-8 py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">Save</button>
+        {% if is_edit %}
+          <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-8 py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">Update Batch Details</button>
+        {% else %}
+          <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-8 py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">Save Batch & Inward Stock</button>
+        {% endif %}
       </div>
     </form>
   </div>
@@ -112,27 +146,6 @@
 
 {% block extra_scripts %}
 <script>
-  const CURRENT = {{ item.stock }};
-  const qtyInput = document.getElementById('qtyInput');
-  const modeRadios = document.querySelectorAll('input[name="mode"]');
-
-  function currentMode() { return document.querySelector('input[name="mode"]:checked').value; }
-
-  function refresh() {
-    const mode = currentMode();
-    const q = parseInt(qtyInput.value, 10) || 0;
-    document.getElementById('qtyLabel').innerText = mode === 'add' ? 'Units to Add' : 'Set Stock To';
-    document.getElementById('submitBtn').innerText = mode === 'add' ? 'Add Stock' : 'Update Stock';
-    document.getElementById('preview').innerText = mode === 'add' ? CURRENT + q : q;
-  }
-
-  modeRadios.forEach(r => r.addEventListener('change', () => {
-    qtyInput.value = currentMode() === 'set' ? CURRENT : 0;
-    refresh();
-  }));
-  qtyInput.addEventListener('input', refresh);
-  refresh();
-
   function toggleBox(isNew) {
     document.getElementById('prevBoxArea').classList.toggle('hidden', isNew);
     document.getElementById('newBoxArea').classList.toggle('hidden', !isNew);

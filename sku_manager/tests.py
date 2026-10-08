@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from decimal import Decimal
 from polars import Decimal
 
 from .models import DispatchLog, JewelrySKU, Platform, PlatformPrice, StockBatch, StorageBox
@@ -168,10 +169,10 @@ class ProductDetailTests(TestCase):
 		self.assertTemplateUsed(response, 'sku_manager/product_detail.html')
 		self.assertEqual(response.context['sellable_units'], 2)
 		self.assertEqual(response.context['held_units'], 3)
-		self.assertEqual(response.context['cost_value'], Decimal('10.00'))
-		self.assertEqual(response.context['retail_value'], Decimal('20.00'))
+		self.assertEqual(Decimal(str(response.context['cost_value'])), Decimal('10.00'))
+		self.assertEqual(Decimal(str(response.context['retail_value'])), Decimal('20.00'))
 		self.assertEqual(response.context['total_units_sold'], 1)
-		self.assertEqual(response.context['total_revenue'], Decimal('9.00'))
+		self.assertEqual(Decimal(str(response.context['total_revenue'])), Decimal('9.00'))
 		self.assertEqual(response.context['units_30d'], 1)
 		self.assertContains(response, 'On Hold')
 

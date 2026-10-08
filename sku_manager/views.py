@@ -13,7 +13,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, OuterRef, Subquery
 from django.urls import reverse
 from django.utils import timezone
 
@@ -232,9 +232,12 @@ def inventory_list(request):
     for sku in JewelrySKU.objects.all():
         sku.sync_stock_from_batches()
 
+    latest_active = (StockBatch.objects
+                     .filter(sku=OuterRef('pk'), status='active', quantity__gt=0)
+                     .order_by('-created_at').values('id')[:1])
+
     items = (JewelrySKU.objects.select_related('storage_box')
-             .annotate(total_batches=Count('batches', distinct=True),
-                       active_batches=Count('batches', filter=Q(batches__status='active'), distinct=True))
+             .annotate(edit_batch_id=Subquery(latest_active))
              .order_by('-id'))
 
     out_count = items.filter(stock=0).count()
@@ -253,7 +256,7 @@ def inventory_list(request):
 
 sku_inventory = inventory_list
 
-# --- PART 2: Add / Edit Stock (Same Page for Both) ---
+# --- PART 2: Add / Edit Stock ---
 @login_required(login_url='login')
 def stock_action(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
@@ -261,94 +264,75 @@ def stock_action(request, pk):
 
     platforms = get_or_seed_platforms()
     boxes = get_all_boxes()
-    active_batches = item.batches.filter(status='active').order_by('-created_at')
 
-    batch_id_to_edit = request.GET.get('edit_batch')
-    selected_batch = item.batches.filter(pk=batch_id_to_edit).first() if batch_id_to_edit else None
+    edit_id = request.GET.get('edit_batch')
+    selected_batch = item.batches.filter(pk=edit_id).first() if edit_id else None
     is_edit = selected_batch is not None
 
     if request.method == 'POST':
-        action_mode = request.POST.get('action_mode', 'new_batch')
         batch_no = request.POST.get('batch_no', '').strip() or f"BAT-{datetime.now().strftime('%y%m%d%H%M')}"
-        stock_raw = request.POST.get('stock_qty', '0').strip()
-        stock_qty = int(stock_raw) if stock_raw.isdigit() else 0
+        qty_raw = request.POST.get('stock_qty', '0').strip()
+        stock_qty = int(qty_raw) if qty_raw.isdigit() else 0
 
-        p_cost = request.POST.get('purchase_price', '0').strip()
-        s_price = request.POST.get('selling_price', '0').strip()
+        p_cost = request.POST.get('purchase_price', '').strip()
+        s_price = request.POST.get('selling_price', '').strip()
         purchase_price = Decimal(p_cost) if p_cost else Decimal('0.00')
         selling_price = Decimal(s_price) if s_price else Decimal('0.00')
 
-        box_choice = request.POST.get('box_choice', 'previous')
-        storage_box = None
-        if box_choice == 'new':
-            new_box_name = request.POST.get('new_box_name', '').strip()
-            if new_box_name:
-                storage_box, _ = StorageBox.objects.get_or_create(
-                    name=new_box_name,
-                    defaults={'color_tag': request.POST.get('new_box_color', '#3B82F6').strip()}
-                )
-        else:
-            box_id = request.POST.get('existing_box_id', '').strip()
-            storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
+        box_id = request.POST.get('existing_box_id', '').strip()
+        storage_box = StorageBox.objects.filter(pk=box_id).first() if box_id else None
 
         section_name = request.POST.get('section_name', '').strip() or 'Main Compartment'
 
         with transaction.atomic():
-            if action_mode == 'edit_batch' and selected_batch:
-                selected_batch.batch_no = batch_no
-                selected_batch.quantity = stock_qty
-                selected_batch.purchase_price = purchase_price
-                selected_batch.selling_price = selling_price
-                selected_batch.storage_box = storage_box
-                selected_batch.section_name = section_name
+            if is_edit:
+                batch = selected_batch
+                batch.batch_no = batch_no
+                batch.quantity = stock_qty
+                batch.purchase_price = purchase_price
+                batch.selling_price = selling_price
+                batch.storage_box = storage_box
+                batch.section_name = section_name
                 if stock_qty > 0:
-                    selected_batch.status = 'active'
-                    selected_batch.finished_at = None
+                    batch.status = 'active'
+                    batch.finished_at = None
                 else:
-                    selected_batch.status = 'disabled'
-                    selected_batch.finished_at = timezone.now()
-                selected_batch.save()
+                    batch.status = 'disabled'
+                    batch.finished_at = timezone.now()
+                batch.save()
                 messages.success(request, f"Batch '{batch_no}' updated! Units: {stock_qty}")
             else:
                 StockBatch.objects.create(
-                    sku=item,
-                    batch_no=batch_no,
-                    quantity=stock_qty,
-                    purchase_price=purchase_price,
-                    selling_price=selling_price,
-                    storage_box=storage_box,
-                    section_name=section_name,
+                    sku=item, batch_no=batch_no, quantity=stock_qty,
+                    purchase_price=purchase_price, selling_price=selling_price,
+                    storage_box=storage_box, section_name=section_name,
                     status='active' if stock_qty > 0 else 'disabled',
                     finished_at=timezone.now() if stock_qty == 0 else None,
                 )
-                messages.success(request, f"Added new Batch '{batch_no}' with {stock_qty} units!")
+                messages.success(request, f"Added new batch '{batch_no}' with {stock_qty} units!")
 
             for platform in platforms:
                 p_val = request.POST.get(f'platform_price_{platform.id}', '').strip()
                 if p_val:
                     PlatformPrice.objects.update_or_create(
-                        sku=item,
-                        platform=platform,
-                        defaults={'price': Decimal(p_val)},
-                    )
+                        sku=item, platform=platform, defaults={'price': Decimal(p_val)})
                 else:
                     PlatformPrice.objects.filter(sku=item, platform=platform).delete()
 
             item.sync_stock_from_batches()
         return redirect('inventory_list')
 
-    current_prices = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
+    price_map = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
+    platform_rows = [{'platform': platform, 'price': price_map.get(platform.id, '')} for platform in platforms]
 
     return render(request, 'sku_manager/stock_action.html', {
         'item': item,
-        'platforms': platforms,
-        'boxes': boxes,
-        'selected_batch': selected_batch,
-        'active_batches': active_batches,
-        'all_batches_count': item.batches.count(),
-        'current_prices': current_prices,
-        'suggested_batch': f"BAT-{datetime.now().strftime('%y%m%d%H%M')}",
         'is_edit': is_edit,
+        'selected_batch': selected_batch,
+        'boxes': boxes,
+        'platform_rows': platform_rows,
+        'all_batches_count': item.batches.count(),
+        'suggested_batch': f"BAT-{datetime.now().strftime('%y%m%d-%H%M')}",
         'active_page': 'inventory',
     })
 

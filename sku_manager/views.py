@@ -227,24 +227,27 @@ def product_delete_secure(request, pk):
 # --- PART 2: Inventory List (FIXES EMPTY TABLE) ---
 @login_required(login_url='login')
 def inventory_list(request):
-    search_query = request.GET.get('q', '').strip()
-    
-    # Direct fetch without any zero-stock overwriting
-    items = JewelrySKU.objects.select_related('storage_box').all().order_by('-id')
+    threshold = AppSettings.get_settings().low_stock_threshold
 
-    if search_query:
-        items = items.filter(
-            Q(sku__icontains=search_query) |
-            Q(name__icontains=search_query) |
-            Q(category__icontains=search_query)
-        )
+    for sku in JewelrySKU.objects.all():
+        sku.sync_stock_from_batches()
 
-    # Provide BOTH 'items' and 'skus' so any template variable works instantly
+    items = (JewelrySKU.objects.select_related('storage_box')
+             .annotate(total_batches=Count('batches', distinct=True),
+                       active_batches=Count('batches', filter=Q(batches__status='active'), distinct=True))
+             .order_by('-id'))
+
+    out_count = items.filter(stock=0).count()
+    low_count = items.filter(stock__gt=0, stock__lte=threshold).count()
+    ok_count = items.filter(stock__gt=threshold).count()
+
     return render(request, 'sku_manager/inventory.html', {
         'items': items,
-        'skus': items,
-        'total_count': items.count(),
-        'search_query': search_query,
+        'total_count': out_count + low_count + ok_count,
+        'out_count': out_count,
+        'low_count': low_count,
+        'ok_count': ok_count,
+        'threshold': threshold,
         'active_page': 'inventory',
     })
 
@@ -262,8 +265,7 @@ def stock_action(request, pk):
 
     batch_id_to_edit = request.GET.get('edit_batch')
     selected_batch = item.batches.filter(pk=batch_id_to_edit).first() if batch_id_to_edit else None
-    if not selected_batch:
-        selected_batch = active_batches.first()
+    is_edit = selected_batch is not None
 
     if request.method == 'POST':
         action_mode = request.POST.get('action_mode', 'new_batch')
@@ -345,7 +347,8 @@ def stock_action(request, pk):
         'active_batches': active_batches,
         'all_batches_count': item.batches.count(),
         'current_prices': current_prices,
-        'suggested_batch': item.batch_no or f"BAT-{datetime.now().strftime('%y%m%d%H%M')}",
+        'suggested_batch': f"BAT-{datetime.now().strftime('%y%m%d%H%M')}",
+        'is_edit': is_edit,
         'active_page': 'inventory',
     })
 

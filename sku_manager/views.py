@@ -5,7 +5,7 @@ import base64
 import colorsys
 import re
 import qrcode
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
@@ -14,8 +14,9 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Q, Count, OuterRef, Subquery
-from django.urls import reverse
+from django.db.models import Q, Count, OuterRef, Subquery, Sum, F, DecimalField, ExpressionWrapper
+from django.urls import reverse, NoReverseMatch
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 
 from .models import JewelrySKU, Platform, PlatformPrice, StorageBox, StockBatch, DispatchLog, AppSettings
@@ -270,6 +271,95 @@ def inventory_list(request):
 
 sku_inventory = inventory_list
 
+
+def _safe_reverse(name, *args):
+    try:
+        return reverse(name, args=args)
+    except NoReverseMatch:
+        return None
+
+
+@login_required(login_url='login')
+def product_detail(request, pk):
+    item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
+    item.sync_stock_from_batches()
+    threshold = AppSettings.get_settings().low_stock_threshold
+
+    batches = list(item.batches.select_related('storage_box').order_by('-created_at'))
+    sellable_batches = [batch for batch in batches if batch.status == 'active' and batch.sales_enabled]
+    held_batches = [batch for batch in batches if batch.status == 'active' and not batch.sales_enabled]
+    sellable_units = sum(batch.quantity for batch in sellable_batches)
+    held_units = sum(batch.quantity for batch in held_batches)
+    cost_value = sum((batch.quantity * batch.purchase_price for batch in sellable_batches), Decimal('0'))
+    retail_value = sum((batch.quantity * batch.selling_price for batch in sellable_batches), Decimal('0'))
+
+    if sellable_units == 0:
+        stock_state = 'out'
+    elif sellable_units <= threshold:
+        stock_state = 'low'
+    else:
+        stock_state = 'ok'
+
+    cost = item.purchase_price
+    mrp = item.selling_price
+    price_map = {price.platform_id: price.price for price in item.platform_prices.all()}
+    platform_rows = []
+    for platform in get_or_seed_platforms():
+        price = price_map.get(platform.id)
+        row = {'platform': platform, 'price': price, 'margin': None, 'margin_pct': None, 'discount_pct': None}
+        if price:
+            row['margin'] = price - cost
+            row['margin_pct'] = round((price - cost) / price * 100, 1)
+            if mrp:
+                row['discount_pct'] = round((mrp - price) / mrp * 100, 1)
+        platform_rows.append(row)
+
+    mrp_margin = mrp - cost if mrp else None
+    mrp_margin_pct = round((mrp - cost) / mrp * 100, 1) if mrp else None
+
+    line_total = ExpressionWrapper(
+        F('sold_price') * F('quantity'),
+        output_field=DecimalField(max_digits=14, decimal_places=2),
+    )
+    logs = item.dispatch_logs.all()
+    totals = logs.aggregate(units=Sum('quantity'), revenue=Sum(line_total))
+    total_units_sold = totals['units'] or 0
+    total_revenue = totals['revenue'] or Decimal('0')
+
+    last30 = logs.filter(dispatched_at__gte=timezone.now() - timedelta(days=30))
+    units_30d = last30.aggregate(units=Sum('quantity'))['units'] or 0
+    days_left = int(sellable_units / (units_30d / 30)) if units_30d and sellable_units else None
+
+    by_platform = (logs.values('platform_name')
+                   .annotate(units=Sum('quantity'), revenue=Sum(line_total))
+                   .order_by('-units'))
+    recent_logs = logs.select_related('platform')[:10]
+
+    return render(request, 'sku_manager/product_detail.html', {
+        'item': item,
+        'threshold': threshold,
+        'batches': batches,
+        'sellable_units': sellable_units,
+        'held_units': held_units,
+        'cost_value': cost_value,
+        'retail_value': retail_value,
+        'stock_state': stock_state,
+        'platform_rows': platform_rows,
+        'mrp_margin': mrp_margin,
+        'mrp_margin_pct': mrp_margin_pct,
+        'total_units_sold': total_units_sold,
+        'total_revenue': total_revenue,
+        'units_30d': units_30d,
+        'days_left': days_left,
+        'by_platform': by_platform,
+        'recent_logs': recent_logs,
+        'edit_url': _safe_reverse('product_edit_details', item.pk) or _safe_reverse('product_edit', item.pk),
+        'label_url': _safe_reverse('sku_print_label', item.pk),
+        'qr_url': _safe_reverse('sku_qr_download', item.pk),
+        'active_page': 'inventory',
+    })
+
+
 # --- PART 2: Add / Edit Stock ---
 @login_required(login_url='login')
 def stock_action(request, pk):
@@ -398,6 +488,13 @@ def toggle_product_status(request, pk):
         product.is_listed = not product.is_listed
         product.save(update_fields=['is_listed', 'updated_at'])
         messages.success(request, f"Sales status updated for {product.sku}.")
+    next_url = request.POST.get('next', '')
+    if url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
     return redirect('product_batches', pk=product.pk)
 
 

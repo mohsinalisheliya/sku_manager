@@ -83,7 +83,9 @@
           {% for item in items %}
             <tr class="inv-row hover:bg-slate-50 dark:hover:bg-slate-800/30 transition"
                 data-stock="{{ item.stock }}" data-name="{{ item.name|lower }}" data-sku="{{ item.sku|lower }}">
-              <td class="py-3.5 px-4 font-mono font-bold text-amber-600 dark:text-amber-400">{{ item.sku }}</td>
+              <td class="py-3.5 px-4 font-mono font-bold">
+                <a href="{% url 'product_detail' item.pk %}" class="text-amber-600 dark:text-amber-400 hover:underline underline-offset-4" title="View product details">{{ item.sku }}</a>
+              </td>
 
               <td class="py-3 px-4">
                 <div class="flex items-center gap-3">

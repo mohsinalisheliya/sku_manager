@@ -17,6 +17,7 @@ urlpatterns = [
     path('', views.inventory_list, name='inventory_list'),
     path('inventory/', views.inventory_list, name='sku_inventory'),
     path('inventory/threshold/', views.update_universal_threshold, name='update_universal_threshold'),
+    path('inventory/product/<int:pk>/', views.product_detail, name='product_detail'),
 
     # Stock Management (Add / Edit Batch - Matches manage_inventory.html)
     path('inventory/stock/add/<int:pk>/', views.stock_action, name='stock_action_add'),

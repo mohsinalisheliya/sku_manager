@@ -71,3 +71,10 @@ class SalesHoldTests(TestCase):
 		self.assertEqual(response.status_code, 302)
 		self.assertFalse(batch.sales_enabled)
 		self.assertEqual(self.item.stock, 0)
+
+		self.client.post(reverse('toggle_batch_sales', args=[batch.pk]))
+
+		batch.refresh_from_db()
+		self.item.refresh_from_db()
+		self.assertTrue(batch.sales_enabled)
+		self.assertEqual(self.item.stock, 4)

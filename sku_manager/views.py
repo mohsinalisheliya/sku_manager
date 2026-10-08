@@ -695,6 +695,7 @@ def sku_print_label(request, pk):
         'item': item,
         'qr_base64': qr_base64,
         'dispatch_url': dispatch_url,
+        'brand_name': AppSettings.get_settings().brand_name,
         'batch_data': batch_data,
         'selected_id': selected_id,
         'selected_batch': selected_batch,

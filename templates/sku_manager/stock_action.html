@@ -95,10 +95,14 @@
       </div>
 
       <div class="flex justify-end pt-3">
-        <button type="submit"
-          class="{% if is_edit %}bg-amber-500 hover:bg-amber-400{% else %}bg-emerald-500 hover:bg-emerald-400{% endif %} text-slate-950 font-black px-8 py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">
-          {% if is_edit %}Update Batch{% else %}Save Batch{% endif %}
-        </button>
+        {% if is_edit %}
+          <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-8 py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">Update Batch</button>
+        {% else %}
+          <div class="flex flex-wrap justify-end gap-2">
+            <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">Save Batch</button>
+            <button type="submit" name="then" value="label" class="bg-blue-600 hover:bg-blue-500 text-white font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm">Save &amp; Print Labels</button>
+          </div>
+        {% endif %}
       </div>
     </form>
   </div>

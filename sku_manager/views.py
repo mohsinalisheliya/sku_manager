@@ -649,9 +649,7 @@ def scan_dispatch(request, sku):
 @login_required(login_url='login')
 def sku_print_label(request, pk):
     item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
-    base = getattr(settings, 'SITE_BASE_URL', '').rstrip('/')
-    path = reverse('scan_dispatch', args=[item.sku])
-    dispatch_url = f"{base}{path}" if base else request.build_absolute_uri(path)
+    qr_payload = item.sku
 
     qr = qrcode.QRCode(
         version=None,
@@ -659,7 +657,7 @@ def sku_print_label(request, pk):
         box_size=10,
         border=1,
     )
-    qr.add_data(dispatch_url)
+    qr.add_data(qr_payload)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
 
@@ -694,7 +692,7 @@ def sku_print_label(request, pk):
     return render(request, 'sku_manager/label_print.html', {
         'item': item,
         'qr_base64': qr_base64,
-        'dispatch_url': dispatch_url,
+        'qr_payload': qr_payload,
         'brand_name': AppSettings.get_settings().brand_name,
         'batch_data': batch_data,
         'selected_id': selected_id,
@@ -705,9 +703,9 @@ def sku_print_label(request, pk):
 
 def sku_qr_download(request, pk):
     item = get_object_or_404(JewelrySKU, pk=pk)
-    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
+    qr_payload = item.sku
     qr = qrcode.QRCode(box_size=10, border=2)
-    qr.add_data(dispatch_url)
+    qr.add_data(qr_payload)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buffer = io.BytesIO()

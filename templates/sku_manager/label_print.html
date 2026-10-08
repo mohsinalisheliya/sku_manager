@@ -1,278 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Tag: {{ item.sku }} - Tatkal Pick</title>
-  <style>
-    @page {
-      size: 50mm 30mm;
-      margin: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      padding: 3mm;
-      display: flex;
-      flex-direction: column;
-      gap: 3mm;
-      justify-content: center;
-      align-items: center;
-      background: #f1f5f9;
-      color: #000;
-    }
-    .label-box {
-      width: 44mm;
-      height: 24mm;
-      background: #fff;
-      border: 1px dashed #94a3b8;
-      box-sizing: border-box;
-      padding: 1.5mm;
-      display: flex;
-      gap: 2mm;
-      align-items: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    .qr-img {
-      width: 20mm;
-      height: 20mm;
-      flex-shrink: 0;
-    }
-    .info {
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      height: 100%;
-    }
-    .brand {
-      font-size: 6pt;
-      font-weight: 900;
-      text-transform: uppercase;
-      outline: none;
-      cursor: text;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .brand:focus {
-      background: #fef08a;
-    }
-    .sku {
-      font-family: monospace;
-      font-size: 4.5pt;
-      font-weight: 700;
-      word-break: break-all;
-      line-height: 1.1;
-    }
-    .product-name {
-      font-size: 5pt;
-      line-height: 1.05;
-      font-weight: 800;
-      overflow: hidden;
-      max-height: 5.5mm;
-    }
-    .meta {
-      font-size: 4.5pt;
-      line-height: 1.05;
-      font-weight: 700;
-      color: #1e293b;
-    }
-    .batch-no {
-      font-family: monospace;
-      font-size: 5pt;
-      font-weight: 900;
-      line-height: 1.05;
-    }
-    .price {
-      font-size: 6pt;
-      font-weight: 900;
-      font-family: monospace;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Print Labels - {{ item.sku }}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #e2e8f0; color: #0f172a; }
 
-    /* Top Non-Printing Action Bar */
-    .no-print-bar {
-      position: fixed;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #0f172a;
-      padding: 6px 12px;
-      border-radius: 12px;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-      z-index: 50;
-    }
-    .brand-input-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #94a3b8;
-      font-size: 11px;
-      font-weight: 600;
-      border-right: 1px solid #334155;
-      padding-right: 10px;
-      margin-right: 2px;
-    }
-    .label-options {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      color: #cbd5e1;
-      font-size: 11px;
-    }
-    .label-options select,
-    .label-options input {
-      max-width: 180px;
-      padding: 4px 6px;
-      border: 1px solid #475569;
-      border-radius: 6px;
-      background: #1e293b;
-      color: #f8fafc;
-      font-size: 11px;
-    }
-    .brand-input {
-      background: #1e293b;
-      border: 1px solid #475569;
-      color: #f8fafc;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 6px;
-      outline: none;
-      width: 140px;
-    }
-    .brand-input:focus {
-      border-color: #f59e0b;
-    }
-    .btn {
-      padding: 5px 10px;
-      background: #f59e0b;
-      color: #0f172a;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 800;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      transition: background 0.15s;
-      white-space: nowrap;
-    }
-    .btn:hover {
-      background: #fbbf24;
-    }
-    .btn-secondary {
-      background: #334155;
-      color: #f8fafc;
-    }
-    .btn-secondary:hover {
-      background: #475569;
-    }
+  /* ---------- control panel (hidden when printing) ---------- */
+  .panel { background: #fff; border-bottom: 1px solid #cbd5e1; padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; position: sticky; top: 0; z-index: 10; }
+  .panel h1 { font-size: 15px; margin: 0 0 2px; }
+  .panel .sub { font-size: 11px; color: #64748b; font-family: monospace; }
+  .field { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; }
+  .field select, .field input[type=number] { font-size: 13px; padding: 7px 9px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; }
+  .field input[type=number] { width: 80px; }
+  .check { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+  .btn { font-size: 13px; font-weight: 700; padding: 9px 16px; border-radius: 10px; border: 0; cursor: pointer; }
+  .btn-print { background: #f59e0b; color: #0f172a; }
+  .btn-ghost { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; text-decoration: none; display: inline-block; }
+  .hint { font-size: 11px; color: #64748b; padding: 8px 18px 0; }
 
-    @media print {
-      body {
-        background: #fff;
-        padding: 0;
-        display: block;
-      }
-      .label-box {
-        border: none;
-        box-shadow: none;
-        margin: 0;
-        break-after: page;
-        page-break-after: always;
-      }
-      .label-box:last-of-type { break-after: auto; page-break-after: auto; }
-      .no-print-bar {
-        display: none !important;
-      }
-      .brand:focus {
-        background: transparent;
-      }
-    }
-  </style>
+  /* ---------- label sheet ---------- */
+  #sheet { padding: 18px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+  .label {
+    width: var(--w); height: var(--h); background: #fff; color: #000;
+    border: 1px dashed #94a3b8; padding: 1.4mm; display: flex; align-items: center; gap: 1.6mm;
+    overflow: hidden; page-break-inside: avoid; break-inside: avoid;
+  }
+  .label .qr { height: 100%; aspect-ratio: 1 / 1; flex: none; }
+  .label .qr img { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+  .label .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.5mm; line-height: 1.15; }
+  .label .nm  { font-weight: 800; font-size: var(--fs-name); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-transform: uppercase; }
+  .label .sku { font-family: "Courier New", monospace; font-weight: 700; font-size: var(--fs-sku); word-break: break-all; }
+  .label .bt  { font-weight: 800; font-size: var(--fs-meta); }
+  .label .mt  { font-size: var(--fs-meta); }
+
+  /* ---------- print ---------- */
+  @media print {
+    body { background: #fff; }
+    .panel, .hint { display: none !important; }
+    #sheet { padding: 0; gap: 0; display: block; }
+    .label { border: 0; }
+    body.roll .label { page-break-after: always; break-after: page; }
+    body.a4 #sheet { display: flex; flex-wrap: wrap; gap: 2mm; }
+  }
+</style>
+<style id="pageRule"></style>
 </head>
-<body>
+<body class="roll">
 
-  <!-- Non-Printing Header -->
-  <div class="no-print-bar">
-    <div class="brand-input-wrapper">
-      <label for="brandInput">Brand:</label>
-      <input type="text" id="brandInput" class="brand-input" placeholder="Enter Brand Name">
-    </div>
-    <form method="GET" class="label-options">
-      <label for="batchSelect">Batch</label>
-      <select id="batchSelect" name="batch" {% if not batch_data %}disabled{% endif %}>
-        {% for batch in batch_data %}<option value="{{ batch.id }}" {% if batch.id == selected_id %}selected{% endif %}>{{ batch.batch_no }} ({{ batch.qty }})</option>{% empty %}<option>No active batches</option>{% endfor %}
-      </select>
-      <label for="copyCount">Copies</label>
-      <input id="copyCount" type="number" name="copies" min="1" max="500" value="{{ copies }}" style="width:58px">
-      {% if batch_data %}<button class="btn btn-secondary" type="submit">Apply</button>{% endif %}
-    </form>
-    <button class="btn" onclick="window.print()">🖨️ Print Tag</button>
-    <a class="btn btn-secondary" href="{% url 'sku_qr_download' item.pk %}">⬇️ QR PNG</a>
-    <a class="btn btn-secondary" href="{% url 'sku_inventory' %}">Exit</a>
+<div class="panel">
+  <div>
+    <h1>🏷️ Print Labels</h1>
+    <div class="sub">{{ item.sku }}</div>
   </div>
 
-  {% for label in labels %}
-    <div class="label-box">
-      <img src="data:image/png;base64,{{ qr_base64 }}" class="qr-img" alt="Dispatch QR for {{ item.sku }}">
-      <div class="info">
-        <div class="brand" contenteditable="true" title="Click to edit brand name directly">{{ brand_name|default:"TATKAL PICK" }}</div>
-        <div class="product-name">{{ item.name }}</div>
-        <div class="sku">{{ item.sku }}</div>
-        <div class="batch-no">BATCH: {{ label.batch_no|default:"N/A" }}</div>
-        <div class="meta">{{ label.box|default:"Unassigned" }}{% if label.section %} | {{ label.section }}{% endif %}</div>
-        <div class="price">MRP: ₹{{ item.selling_price }}</div>
-      </div>
-    </div>
-  {% empty %}
-    <div class="label-box">
-      <img src="data:image/png;base64,{{ qr_base64 }}" class="qr-img" alt="Dispatch QR for {{ item.sku }}">
-      <div class="info">
-        <div class="brand" contenteditable="true" title="Click to edit brand name directly">{{ brand_name|default:"TATKAL PICK" }}</div>
-        <div class="product-name">{{ item.name }}</div>
-        <div class="sku">{{ item.sku }}</div>
-        <div class="batch-no">NO ACTIVE BATCH</div>
-        <div class="meta">{{ item.storage_box.name|default:"Unassigned" }} | {{ item.section_name|default:"Main" }}</div>
-        <div class="price">MRP: ₹{{ item.selling_price }}</div>
-      </div>
-    </div>
-  {% endfor %}
+  <label class="field">Batch
+    <select id="batchSel">
+      {% for b in batch_data %}
+        <option value="{{ b.id }}" {% if b.id == selected_id %}selected{% endif %}>{{ b.batch_no }} ({{ b.qty }} units)</option>
+      {% empty %}
+        <option value="">No active batch</option>
+      {% endfor %}
+    </select>
+  </label>
 
-  <script>
-    const brandInput = document.getElementById('brandInput');
-    const brandDisplays = document.querySelectorAll('.brand');
-    const dbBrand = "{{ brand_name|default:'TATKAL PICK'|escapejs }}";
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeBrand = urlParams.get('brand') || dbBrand || 'TATKAL PICK';
+  <label class="field">Copies
+    <input type="number" id="copies" min="1" max="500" value="{{ copies }}">
+  </label>
+  <button class="btn btn-ghost" type="button" id="useQty" title="One label for every unit in the batch">= Batch qty</button>
 
-    brandDisplays.forEach((display) => { display.innerText = activeBrand; });
-    brandInput.value = activeBrand;
+  <label class="field">Label size
+    <select id="sizeSel">
+      <option value="50x30">50 × 30 mm</option>
+      <option value="50x25">50 × 25 mm</option>
+      <option value="40x30">40 × 30 mm</option>
+      <option value="38x25">38 × 25 mm</option>
+      <option value="75x50">75 × 50 mm</option>
+      <option value="100x50">100 × 50 mm</option>
+    </select>
+  </label>
 
-    brandInput.addEventListener('input', (e) => {
-      const val = e.target.value.trim() || 'TATKAL PICK';
-      brandDisplays.forEach((display) => { display.innerText = val; });
-      localStorage.setItem('tp_custom_brand_name', val);
-    });
+  <label class="field">Printing on
+    <select id="layoutSel">
+      <option value="roll">Label roll (thermal)</option>
+      <option value="a4">A4 sticker sheet</option>
+    </select>
+  </label>
 
-    brandDisplays.forEach((display) => display.addEventListener('input', (e) => {
-      const val = e.target.innerText.trim();
-      brandInput.value = val;
-      localStorage.setItem('tp_custom_brand_name', val || 'TATKAL PICK');
-    }));
+  <label class="check"><input type="checkbox" id="showPrice"> MRP</label>
+  <label class="check"><input type="checkbox" id="showLoc"> Location</label>
 
-    const savedBrand = localStorage.getItem('tp_custom_brand_name');
-    if (savedBrand) {
-      brandInput.value = savedBrand;
-      brandDisplays.forEach((display) => { display.innerText = savedBrand; });
+  <button class="btn btn-print" type="button" onclick="window.print()">🖨️ Print</button>
+  <a class="btn btn-ghost" href="{% url 'inventory_list' %}">← Inventory</a>
+</div>
+<div class="hint">
+  Print tip: in the print dialog set <b>Margins = None</b> and <b>Scale = 100%</b>. The QR opens the dispatch page for this SKU, so your existing scanner works on it.
+</div>
+
+<div id="sheet"></div>
+
+{{ batch_data|json_script:"batchData" }}
+<script>
+  const batches = JSON.parse(document.getElementById('batchData').textContent);
+  const itemName = "{{ item.name|escapejs }}";
+  const itemSku = "{{ item.sku|escapejs }}";
+  const itemMrp = "{{ item.selling_price }}";
+  const itemLoc = "{% if item.storage_box %}{{ item.storage_box.name|escapejs }} • {{ item.section_name|escapejs }}{% endif %}";
+  const qrSrc = "data:image/png;base64,{{ qr_base64 }}";
+
+  const $ = id => document.getElementById(id);
+  const sizes = {
+    '50x30':  {w:50,  h:30,  name:3.2, sku:2.5, meta:2.7},
+    '50x25':  {w:50,  h:25,  name:3.0, sku:2.3, meta:2.5},
+    '40x30':  {w:40,  h:30,  name:3.0, sku:2.2, meta:2.5},
+    '38x25':  {w:38,  h:25,  name:2.8, sku:2.1, meta:2.3},
+    '75x50':  {w:75,  h:50,  name:4.5, sku:3.2, meta:3.6},
+    '100x50': {w:100, h:50,  name:5.0, sku:3.6, meta:4.0},
+  };
+
+  function currentBatch() {
+    return batches.find(b => String(b.id) === $('batchSel').value) || null;
+  }
+
+  function render() {
+    const s = sizes[$('sizeSel').value];
+    const layout = $('layoutSel').value;
+    document.body.className = layout;
+    const root = document.documentElement.style;
+    root.setProperty('--w', s.w + 'mm');
+    root.setProperty('--h', s.h + 'mm');
+    root.setProperty('--fs-name', s.name + 'mm');
+    root.setProperty('--fs-sku', s.sku + 'mm');
+    root.setProperty('--fs-meta', s.meta + 'mm');
+
+    $('pageRule').textContent = layout === 'roll'
+      ? `@page { size: ${s.w}mm ${s.h}mm; margin: 0; }`
+      : `@page { size: A4; margin: 8mm; }`;
+
+    const b = currentBatch();
+    const n = Math.min(Math.max(parseInt($('copies').value, 10) || 1, 1), 500);
+    const sheet = $('sheet');
+    sheet.innerHTML = '';
+
+    for (let i = 0; i < n; i++) {
+      const lab = document.createElement('div'); lab.className = 'label';
+
+      const qr = document.createElement('div'); qr.className = 'qr';
+      const img = document.createElement('img'); img.src = qrSrc; img.alt = 'QR';
+      qr.appendChild(img);
+
+      const txt = document.createElement('div'); txt.className = 'txt';
+      const add = (cls, text) => { const d = document.createElement('div'); d.className = cls; d.textContent = text; txt.appendChild(d); };
+      add('nm', itemName);
+      add('sku', itemSku);
+      if (b) add('bt', 'Batch: ' + b.batch_no);
+      if ($('showPrice').checked && itemMrp) add('mt', 'MRP ₹' + itemMrp);
+      if ($('showLoc').checked) {
+        const loc = b && b.box ? (b.box + (b.section ? ' • ' + b.section : '')) : itemLoc;
+        if (loc) add('mt', loc);
+      }
+
+      lab.appendChild(qr); lab.appendChild(txt);
+      sheet.appendChild(lab);
     }
+  }
 
-    if (urlParams.has('autoprint')) {
-      window.print();
-    }
-  </script>
+  $('useQty').addEventListener('click', () => {
+    const b = currentBatch();
+    if (b) { $('copies').value = Math.max(1, b.qty); render(); }
+  });
+  ['batchSel','copies','sizeSel','layoutSel','showPrice','showLoc'].forEach(id => $(id).addEventListener('input', render));
+  $('batchSel').addEventListener('change', render);
+
+  // remember the last used size / layout on this device
+  try {
+    const sv = JSON.parse(localStorage.getItem('labelPrefs') || '{}');
+    if (sv.size && sizes[sv.size]) $('sizeSel').value = sv.size;
+    if (sv.layout) $('layoutSel').value = sv.layout;
+    $('showPrice').checked = !!sv.price; $('showLoc').checked = !!sv.loc;
+  } catch (e) {}
+  ['sizeSel','layoutSel','showPrice','showLoc'].forEach(id => $(id).addEventListener('change', () => {
+    try { localStorage.setItem('labelPrefs', JSON.stringify({size: $('sizeSel').value, layout: $('layoutSel').value, price: $('showPrice').checked, loc: $('showLoc').checked})); } catch (e) {}
+  }));
+
+  render();
+</script>
 </body>
-</html>        
+</html>

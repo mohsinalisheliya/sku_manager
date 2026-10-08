@@ -228,6 +228,13 @@ class LabelPrintingTests(TestCase):
 		self.assertContains(response, 'Tray 7')
 		self.assertContains(response, 'data:image/png;base64,')
 
+	def test_inventory_has_print_label_action_for_each_sku(self):
+		response = self.client.get(reverse('inventory_list'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, reverse('sku_print_label', args=[self.item.pk]))
+		self.assertContains(response, 'Print Label')
+
 	def test_label_page_falls_back_for_unknown_batch_and_clamps_copies(self):
 		response = self.client.get(self.url, {'batch': '999999', 'copies': '900'})
 

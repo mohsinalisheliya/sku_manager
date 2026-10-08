@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from polars import Decimal
 
 from .models import DispatchLog, JewelrySKU, Platform, PlatformPrice, StockBatch, StorageBox
 from .views import COLOR_PALETTE

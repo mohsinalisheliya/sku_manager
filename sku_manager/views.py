@@ -7,6 +7,7 @@ import re
 import qrcode
 from datetime import datetime, timedelta
 from decimal import Decimal
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
@@ -409,7 +410,7 @@ def stock_action(request, pk):
                 batch.save()
                 messages.success(request, f"Batch '{batch_no}' updated! Units: {stock_qty}")
             else:
-                StockBatch.objects.create(
+                new_batch = StockBatch.objects.create(
                     sku=item, batch_no=batch_no, quantity=stock_qty,
                     purchase_price=purchase_price, selling_price=selling_price,
                     storage_box=storage_box, section_name=section_name,
@@ -427,6 +428,8 @@ def stock_action(request, pk):
                     PlatformPrice.objects.filter(sku=item, platform=platform).delete()
 
             item.sync_stock_from_batches()
+        if request.POST.get('then') == 'label' and not is_edit and 'new_batch' in locals() and new_batch.quantity > 0:
+            return redirect(f"{reverse('sku_print_label', args=[item.pk])}?batch={new_batch.pk}&copies={new_batch.quantity}")
         return redirect('inventory_list')
 
     price_map = {pp.platform_id: pp.price for pp in item.platform_prices.all()}
@@ -643,12 +646,19 @@ def scan_dispatch(request, sku):
         'recent_logs': recent_logs,
     })
 
+@login_required(login_url='login')
 def sku_print_label(request, pk):
     item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
-    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
-    settings_obj = AppSettings.get_settings()
+    base = getattr(settings, 'SITE_BASE_URL', '').rstrip('/')
+    path = reverse('scan_dispatch', args=[item.sku])
+    dispatch_url = f"{base}{path}" if base else request.build_absolute_uri(path)
 
-    qr = qrcode.QRCode(version=1, box_size=6, border=1)
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=1,
+    )
     qr.add_data(dispatch_url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
@@ -657,11 +667,39 @@ def sku_print_label(request, pk):
     img.save(buffer, format="PNG")
     qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
+    batches = item.batches.select_related('storage_box').filter(
+        status='active', quantity__gt=0
+    ).order_by('-created_at')
+    batch_data = [{
+        'id': batch.id,
+        'batch_no': batch.batch_no,
+        'qty': batch.quantity,
+        'box': batch.storage_box.name if batch.storage_box else '',
+        'section': batch.section_name,
+    } for batch in batches]
+
+    try:
+        selected_id = int(request.GET.get('batch', ''))
+    except (TypeError, ValueError):
+        selected_id = batch_data[0]['id'] if batch_data else None
+    if selected_id not in [batch['id'] for batch in batch_data]:
+        selected_id = batch_data[0]['id'] if batch_data else None
+    selected_batch = next((batch for batch in batch_data if batch['id'] == selected_id), None)
+
+    try:
+        copies = max(1, min(int(request.GET.get('copies', 1)), 500))
+    except (TypeError, ValueError):
+        copies = 1
+
     return render(request, 'sku_manager/label_print.html', {
         'item': item,
         'qr_base64': qr_base64,
         'dispatch_url': dispatch_url,
-        'settings': settings_obj,
+        'batch_data': batch_data,
+        'selected_id': selected_id,
+        'selected_batch': selected_batch,
+        'copies': copies,
+        'labels': [selected_batch] * copies,
     })
 
 def sku_qr_download(request, pk):

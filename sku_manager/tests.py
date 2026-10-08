@@ -195,3 +195,60 @@ class ProductDetailTests(TestCase):
 		)
 
 		self.assertRedirects(response, reverse('product_batches', args=[self.item.pk]))
+
+
+class LabelPrintingTests(TestCase):
+	def setUp(self):
+		user = get_user_model().objects.create_user(username='label-user', password='test-password')
+		self.client.force_login(user)
+		self.item = JewelrySKU.objects.create(name='Label Test Product')
+		self.older_batch = StockBatch.objects.create(
+			sku=self.item,
+			batch_no='OLD-LABEL',
+			quantity=4,
+		)
+		self.latest_batch = StockBatch.objects.create(
+			sku=self.item,
+			batch_no='NEW-LABEL',
+			quantity=2,
+			section_name='Tray 7',
+		)
+		self.url = reverse('sku_print_label', args=[self.item.pk])
+
+	def test_label_page_defaults_to_latest_batch_and_renders_copies(self):
+		response = self.client.get(self.url, {'copies': '3'})
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.context['selected_id'], self.latest_batch.pk)
+		self.assertEqual(response.context['copies'], 3)
+		self.assertEqual(len(response.context['labels']), 3)
+		self.assertContains(response, self.item.name)
+		self.assertContains(response, self.item.sku)
+		self.assertContains(response, 'NEW-LABEL')
+		self.assertContains(response, 'Tray 7')
+		self.assertContains(response, 'data:image/png;base64,')
+
+	def test_label_page_falls_back_for_unknown_batch_and_clamps_copies(self):
+		response = self.client.get(self.url, {'batch': '999999', 'copies': '900'})
+
+		self.assertEqual(response.context['selected_id'], self.latest_batch.pk)
+		self.assertEqual(response.context['copies'], 500)
+		self.assertEqual(len(response.context['labels']), 500)
+
+	def test_save_and_print_redirects_to_new_batch_labels(self):
+		response = self.client.post(reverse('stock_action', args=[self.item.pk]), {
+			'batch_no': 'PRINT-ME',
+			'stock_qty': '6',
+			'purchase_price': '4.50',
+			'selling_price': '9.00',
+			'existing_box_id': '',
+			'section_name': 'Tray 2',
+			'then': 'label',
+		})
+
+		created_batch = StockBatch.objects.get(sku=self.item, batch_no='PRINT-ME')
+		self.assertRedirects(
+			response,
+			f"{self.url}?batch={created_batch.pk}&copies=6",
+			fetch_redirect_response=False,
+		)

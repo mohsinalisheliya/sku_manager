@@ -669,7 +669,7 @@ def sku_print_label(request, pk):
 
     batches = item.batches.select_related('storage_box').filter(
         status='active', quantity__gt=0
-    ).order_by('-created_at')
+    ).order_by('-created_at', '-pk')
     batch_data = [{
         'id': batch.id,
         'batch_no': batch.batch_no,

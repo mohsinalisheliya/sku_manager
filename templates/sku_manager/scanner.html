@@ -1,191 +1,157 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Print Labels - {{ item.sku }}</title>
-<style>
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #e2e8f0; color: #0f172a; }
+{% extends "sku_manager/base.html" %}
 
-  /* ---------- control panel (hidden when printing) ---------- */
-  .panel { background: #fff; border-bottom: 1px solid #cbd5e1; padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; position: sticky; top: 0; z-index: 10; }
-  .panel h1 { font-size: 15px; margin: 0 0 2px; }
-  .panel .sub { font-size: 11px; color: #64748b; font-family: monospace; }
-  .field { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; }
-  .field select, .field input[type=number] { font-size: 13px; padding: 7px 9px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; }
-  .field input[type=number] { width: 80px; }
-  .check { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
-  .btn { font-size: 13px; font-weight: 700; padding: 9px 16px; border-radius: 10px; border: 0; cursor: pointer; }
-  .btn-print { background: #f59e0b; color: #0f172a; }
-  .btn-ghost { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; text-decoration: none; display: inline-block; }
-  .hint { font-size: 11px; color: #64748b; padding: 8px 18px 0; }
+{% block title %}Live Camera Scanner - Velfira{% endblock %}
 
-  /* ---------- label sheet ---------- */
-  #sheet { padding: 18px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
-  .label {
-    width: var(--w); height: var(--h); background: #fff; color: #000;
-    border: 1px dashed #94a3b8; padding: 1.4mm; display: flex; align-items: center; gap: 1.6mm;
-    overflow: hidden; page-break-inside: avoid; break-inside: avoid;
-  }
-  .label .qr { height: 100%; aspect-ratio: 1 / 1; flex: none; }
-  .label .qr img { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
-  .label .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.5mm; line-height: 1.15; }
-  .label .nm  { font-weight: 800; font-size: var(--fs-name); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-transform: uppercase; }
-  .label .sku { font-family: "Courier New", monospace; font-weight: 700; font-size: var(--fs-sku); word-break: break-all; }
-  .label .bt  { font-weight: 800; font-size: var(--fs-meta); }
-  .label .mt  { font-size: var(--fs-meta); }
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-5">
+  
+  <!-- Header -->
+  <header class="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div class="flex items-center gap-2.5">
+      <span class="w-3 h-3 rounded-full bg-rose-500 animate-ping"></span>
+      <h1 class="text-xl font-extrabold text-white">Live Barcode / QR Scanner</h1>
+    </div>
+    <span class="text-xs font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+      Auto-Focus Active
+    </span>
+  </header>
 
-  /* ---------- print ---------- */
-  @media print {
-    body { background: #fff; }
-    .panel, .hint { display: none !important; }
-    #sheet { padding: 0; gap: 0; display: block; }
-    .label { border: 0; }
-    body.roll .label { page-break-after: always; break-after: page; }
-    body.a4 #sheet { display: flex; flex-wrap: wrap; gap: 2mm; }
-  }
-</style>
-<style id="pageRule"></style>
-</head>
-<body class="roll">
+  <!-- Scanner Container Card -->
+  <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+    
+    <!-- Camera Viewport Box -->
+    <div class="relative bg-black rounded-2xl overflow-hidden aspect-square sm:aspect-video flex items-center justify-center border-2 border-slate-800 shadow-inner">
+      <div id="reader" class="w-full h-full"></div>
 
-<div class="panel">
-  <div>
-    <h1>🏷️ Print Labels</h1>
-    <div class="sub">{{ item.sku }}</div>
+      <!-- Aim Crosshair Overlay -->
+      <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <div class="w-56 h-56 border-2 border-amber-400/80 rounded-2xl relative shadow-[0_0_20px_rgba(251,191,36,0.3)]">
+          <div class="absolute -top-1 -left-1 w-5 h-5 border-t-4 border-l-4 border-amber-400"></div>
+          <div class="absolute -top-1 -right-1 w-5 h-5 border-t-4 border-r-4 border-amber-400"></div>
+          <div class="absolute -bottom-1 -left-1 w-5 h-5 border-b-4 border-l-4 border-amber-400"></div>
+          <div class="absolute -bottom-1 -right-1 w-5 h-5 border-b-4 border-r-4 border-amber-400"></div>
+          <div class="w-full h-0.5 bg-rose-500/80 absolute top-1/2 -translate-y-1/2 animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scanner Status Info -->
+    <div id="scannerStatus" class="text-center text-xs font-semibold text-slate-400 py-1 flex items-center justify-center gap-2">
+      <svg class="w-4 h-4 text-emerald-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+      <span>Point camera at any jewelry product tag QR code...</span>
+    </div>
+
+    <!-- Manual Fallback Input Box -->
+    <div class="border-t border-slate-800 pt-3">
+      <div class="text-[11px] uppercase font-bold text-slate-500 mb-2">Or Enter SKU Manually:</div>
+      <form id="manualForm" class="flex gap-2">
+        <input type="text" id="manualSkuInput" placeholder="e.g. NCK-PND-PUFFHRT-GLD-ADJ-001" 
+          class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono uppercase text-white placeholder-slate-600 focus:outline-none focus:border-amber-500">
+        <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition">
+          Open Item
+        </button>
+      </form>
+    </div>
+
   </div>
 
-  <label class="field">Batch
-    <select id="batchSel">
-      {% for b in batch_data %}
-        <option value="{{ b.id }}" {% if b.id == selected_id %}selected{% endif %}>{{ b.batch_no }} ({{ b.qty }} units)</option>
-      {% empty %}
-        <option value="">No active batch</option>
-      {% endfor %}
-    </select>
-  </label>
-
-  <label class="field">Copies
-    <input type="number" id="copies" min="1" max="500" value="{{ copies }}">
-  </label>
-  <button class="btn btn-ghost" type="button" id="useQty" title="One label for every unit in the batch">= Batch qty</button>
-
-  <label class="field">Label size
-    <select id="sizeSel">
-      <option value="50x30">50 × 30 mm</option>
-      <option value="50x25">50 × 25 mm</option>
-      <option value="40x30">40 × 30 mm</option>
-      <option value="38x25">38 × 25 mm</option>
-      <option value="75x50">75 × 50 mm</option>
-      <option value="100x50">100 × 50 mm</option>
-    </select>
-  </label>
-
-  <label class="field">Printing on
-    <select id="layoutSel">
-      <option value="roll">Label roll (thermal)</option>
-      <option value="a4">A4 sticker sheet</option>
-    </select>
-  </label>
-
-  <label class="check"><input type="checkbox" id="showPrice"> MRP</label>
-  <label class="check"><input type="checkbox" id="showLoc"> Location</label>
-
-  <button class="btn btn-print" type="button" onclick="window.print()">🖨️ Print</button>
-  <a class="btn btn-ghost" href="{% url 'inventory_list' %}">← Inventory</a>
 </div>
-<div class="hint">
-  Print tip: in the print dialog set <b>Margins = None</b> and <b>Scale = 100%</b>. The QR opens the dispatch page for this SKU, so your existing scanner works on it.
-</div>
+{% endblock %}
 
-<div id="sheet"></div>
+{% block extra_scripts %}
+<!-- Load html5-qrcode Library from CDN -->
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-{{ batch_data|json_script:"batchData" }}
 <script>
-  const batches = JSON.parse(document.getElementById('batchData').textContent);
-  const itemName = "{{ item.name|escapejs }}";
-  const itemSku = "{{ item.sku|escapejs }}";
-  const itemMrp = "{{ item.selling_price }}";
-  const itemLoc = "{% if item.storage_box %}{{ item.storage_box.name|escapejs }} • {{ item.section_name|escapejs }}{% endif %}";
-  const qrSrc = "data:image/png;base64,{{ qr_base64 }}";
+  let html5QrcodeScanner;
+  let isScanningHandled = false;
 
-  const $ = id => document.getElementById(id);
-  const sizes = {
-    '50x30':  {w:50,  h:30,  name:3.2, sku:2.5, meta:2.7},
-    '50x25':  {w:50,  h:25,  name:3.0, sku:2.3, meta:2.5},
-    '40x30':  {w:40,  h:30,  name:3.0, sku:2.2, meta:2.5},
-    '38x25':  {w:38,  h:25,  name:2.8, sku:2.1, meta:2.3},
-    '75x50':  {w:75,  h:50,  name:4.5, sku:3.2, meta:3.6},
-    '100x50': {w:100, h:50,  name:5.0, sku:3.6, meta:4.0},
-  };
-
-  function currentBatch() {
-    return batches.find(b => String(b.id) === $('batchSel').value) || null;
-  }
-
-  function render() {
-    const s = sizes[$('sizeSel').value];
-    const layout = $('layoutSel').value;
-    document.body.className = layout;
-    const root = document.documentElement.style;
-    root.setProperty('--w', s.w + 'mm');
-    root.setProperty('--h', s.h + 'mm');
-    root.setProperty('--fs-name', s.name + 'mm');
-    root.setProperty('--fs-sku', s.sku + 'mm');
-    root.setProperty('--fs-meta', s.meta + 'mm');
-
-    $('pageRule').textContent = layout === 'roll'
-      ? `@page { size: ${s.w}mm ${s.h}mm; margin: 0; }`
-      : `@page { size: A4; margin: 8mm; }`;
-
-    const b = currentBatch();
-    const n = Math.min(Math.max(parseInt($('copies').value, 10) || 1, 1), 500);
-    const sheet = $('sheet');
-    sheet.innerHTML = '';
-
-    for (let i = 0; i < n; i++) {
-      const lab = document.createElement('div'); lab.className = 'label';
-
-      const qr = document.createElement('div'); qr.className = 'qr';
-      const img = document.createElement('img'); img.src = qrSrc; img.alt = 'QR';
-      qr.appendChild(img);
-
-      const txt = document.createElement('div'); txt.className = 'txt';
-      const add = (cls, text) => { const d = document.createElement('div'); d.className = cls; d.textContent = text; txt.appendChild(d); };
-      add('nm', itemName);
-      add('sku', itemSku);
-      if (b) add('bt', 'Batch: ' + b.batch_no);
-      if ($('showPrice').checked && itemMrp) add('mt', 'MRP ₹' + itemMrp);
-      if ($('showLoc').checked) {
-        const loc = b && b.box ? (b.box + (b.section ? ' • ' + b.section : '')) : itemLoc;
-        if (loc) add('mt', loc);
-      }
-
-      lab.appendChild(qr); lab.appendChild(txt);
-      sheet.appendChild(lab);
+  // Audio feedback on successful scan
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 880; // A5 note
+      gain.gain.value = 0.15;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } catch (e) {
+      console.log("AudioContext blocked until user interaction.");
     }
   }
 
-  $('useQty').addEventListener('click', () => {
-    const b = currentBatch();
-    if (b) { $('copies').value = Math.max(1, b.qty); render(); }
+  function handleScannedResult(decodedText) {
+    if (isScanningHandled) return;
+    isScanningHandled = true;
+
+    playBeep();
+    document.getElementById('scannerStatus').innerHTML = `
+      <span class="text-emerald-400 font-bold">✓ Tag Detected! Redirecting to Dispatch Station...</span>
+    `;
+
+    // Extract SKU code whether the scanned QR is a direct URL or just raw SKU text
+    let targetSku = decodedText.trim();
+    if (targetSku.includes('/dispatch/')) {
+      // If QR encodes full URL like http://.../dispatch/SKU-CODE/
+      const parts = targetSku.split('/dispatch/');
+      targetSku = parts[1].replace(/\/$/, '');
+    }
+
+    // Redirect to dispatch view
+    window.location.href = `/dispatch/${targetSku}/`;
+  }
+
+  function startScanner() {
+    html5QrcodeScanner = new Html5Qrcode("reader");
+
+    const config = {
+      fps: 15,
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.0,
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true
+      }
+    };
+
+    // Prefer back camera (environment) on mobile devices
+    html5QrcodeScanner.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        handleScannedResult(decodedText);
+      },
+      (errorMessage) => {
+        // Continuous scan loop frame misses are normal
+      }
+    ).catch(err => {
+      document.getElementById('scannerStatus').innerHTML = `
+        <span class="text-rose-400">Camera error: Please allow camera permissions in browser settings.</span>
+      `;
+    });
+  }
+
+  // Handle manual input fallback
+  document.getElementById('manualForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const val = document.getElementById('manualSkuInput').value.trim();
+    if (val) {
+      window.location.href = `/dispatch/${encodeURIComponent(val)}/`;
+    }
   });
-  ['batchSel','copies','sizeSel','layoutSel','showPrice','showLoc'].forEach(id => $(id).addEventListener('input', render));
-  $('batchSel').addEventListener('change', render);
 
-  // remember the last used size / layout on this device
-  try {
-    const sv = JSON.parse(localStorage.getItem('labelPrefs') || '{}');
-    if (sv.size && sizes[sv.size]) $('sizeSel').value = sv.size;
-    if (sv.layout) $('layoutSel').value = sv.layout;
-    $('showPrice').checked = !!sv.price; $('showLoc').checked = !!sv.loc;
-  } catch (e) {}
-  ['sizeSel','layoutSel','showPrice','showLoc'].forEach(id => $(id).addEventListener('change', () => {
-    try { localStorage.setItem('labelPrefs', JSON.stringify({size: $('sizeSel').value, layout: $('layoutSel').value, price: $('showPrice').checked, loc: $('showLoc').checked})); } catch (e) {}
-  }));
+  window.addEventListener('DOMContentLoaded', () => {
+    startScanner();
+  });
 
-  render();
+  // Stop camera when navigating away to save battery
+  window.addEventListener('beforeunload', () => {
+    if (html5QrcodeScanner) {
+      html5QrcodeScanner.stop().catch(() => {});
+    }
+  });
 </script>
-</body>
-</html>
+{% endblock %}        

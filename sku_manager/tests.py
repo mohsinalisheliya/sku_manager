@@ -218,20 +218,18 @@ class LabelPrintingTests(TestCase):
 		self.url = reverse('sku_print_label', args=[self.item.pk])
 
 	def test_label_page_defaults_to_latest_batch_and_renders_copies(self):
-		response = self.client.get(self.url, {'copies': '3'})
+		response = self.client.get(self.url)
 
 		self.assertEqual(response.status_code, 200)
-		self.assertEqual(response.context['selected_id'], self.latest_batch.pk)
-		self.assertEqual(response.context['copies'], 3)
-		self.assertEqual(len(response.context['labels']), 3)
+		self.assertEqual(response.context['batch'], self.latest_batch)
+		self.assertEqual(response.context['copies'], self.latest_batch.quantity)
+		self.assertEqual(response.context['rows'], [[1, 1]])
 		self.assertContains(response, self.item.name)
 		self.assertContains(response, self.item.sku)
 		self.assertContains(response, 'NEW-LABEL')
-		self.assertContains(response, 'Tray 7')
 		self.assertContains(response, 'data:image/png;base64,')
-		self.assertEqual(response.context['qr_payload'], self.item.sku)
 
-	def test_label_and_download_qr_encode_only_the_sku(self):
+	def test_label_qr_encodes_dispatch_url(self):
 		payloads = []
 		original_add_data = qrcode.QRCode.add_data
 
@@ -241,11 +239,12 @@ class LabelPrintingTests(TestCase):
 
 		with patch('sku_manager.views.qrcode.QRCode.add_data', autospec=True, side_effect=capture_payload):
 			label_response = self.client.get(self.url)
-			download_response = self.client.get(reverse('sku_qr_download', args=[self.item.pk]))
 
 		self.assertEqual(label_response.status_code, 200)
-		self.assertEqual(download_response.status_code, 200)
-		self.assertEqual(payloads, [self.item.sku, self.item.sku])
+		dispatch_url = self.client.get(self.url).wsgi_request.build_absolute_uri(
+			reverse('scan_dispatch', args=[self.item.sku]),
+		)
+		self.assertEqual(payloads, [dispatch_url])
 
 	def test_inventory_has_print_label_action_for_each_sku(self):
 		response = self.client.get(reverse('inventory_list'))
@@ -257,9 +256,10 @@ class LabelPrintingTests(TestCase):
 	def test_label_page_falls_back_for_unknown_batch_and_clamps_copies(self):
 		response = self.client.get(self.url, {'batch': '999999', 'copies': '900'})
 
-		self.assertEqual(response.context['selected_id'], self.latest_batch.pk)
+		self.assertEqual(response.context['batch'], self.latest_batch)
 		self.assertEqual(response.context['copies'], 500)
-		self.assertEqual(len(response.context['labels']), 500)
+		self.assertEqual(len(response.context['rows']), 250)
+		self.assertTrue(all(row == [1, 1] for row in response.context['rows']))
 
 	def test_save_and_print_redirects_to_new_batch_labels(self):
 		response = self.client.post(reverse('stock_action', args=[self.item.pk]), {

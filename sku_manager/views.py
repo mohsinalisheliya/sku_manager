@@ -648,15 +648,34 @@ def scan_dispatch(request, sku):
 @login_required(login_url='login')
 def sku_print_label(request, pk):
     item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
-    qr_payload = item.sku
+    batches = list(item.batches.order_by('-created_at', '-pk'))
+    batch = None
+    batch_id = request.GET.get('batch', '')
+    if batch_id.isdigit():
+        batch = next((entry for entry in batches if entry.pk == int(batch_id)), None)
+    if batch is None:
+        batch = next((entry for entry in batches if entry.status == 'active' and entry.quantity > 0), None)
+        batch = batch or (batches[0] if batches else None)
 
+    copies_raw = request.GET.get('copies', '')
+    if copies_raw.isdigit():
+        copies = int(copies_raw)
+    else:
+        copies = batch.quantity if batch and batch.quantity > 0 else 1
+    copies = max(1, min(copies, 500))
+
+    rows = [[1, 1] for _ in range(copies // 2)]
+    if copies % 2:
+        rows.append([1])
+
+    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
     qr = qrcode.QRCode(
         version=None,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
         border=1,
     )
-    qr.add_data(qr_payload)
+    qr.add_data(dispatch_url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
 
@@ -664,40 +683,14 @@ def sku_print_label(request, pk):
     img.save(buffer, format="PNG")
     qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-    batches = item.batches.select_related('storage_box').filter(
-        status='active', quantity__gt=0
-    ).order_by('-created_at', '-pk')
-    batch_data = [{
-        'id': batch.id,
-        'batch_no': batch.batch_no,
-        'qty': batch.quantity,
-        'box': batch.storage_box.name if batch.storage_box else '',
-        'section': batch.section_name,
-    } for batch in batches]
-
-    try:
-        selected_id = int(request.GET.get('batch', ''))
-    except (TypeError, ValueError):
-        selected_id = batch_data[0]['id'] if batch_data else None
-    if selected_id not in [batch['id'] for batch in batch_data]:
-        selected_id = batch_data[0]['id'] if batch_data else None
-    selected_batch = next((batch for batch in batch_data if batch['id'] == selected_id), None)
-
-    try:
-        copies = max(1, min(int(request.GET.get('copies', 1)), 500))
-    except (TypeError, ValueError):
-        copies = 1
-
     return render(request, 'sku_manager/label_print.html', {
         'item': item,
-        'qr_base64': qr_base64,
-        'qr_payload': qr_payload,
-        'brand_name': AppSettings.get_settings().brand_name,
-        'batch_data': batch_data,
-        'selected_id': selected_id,
-        'selected_batch': selected_batch,
+        'batch': batch,
+        'batches': batches,
         'copies': copies,
-        'labels': [selected_batch] * copies,
+        'rows': rows,
+        'qr_base64': qr_base64,
+        'dispatch_url': dispatch_url,
     })
 
 def sku_qr_download(request, pk):

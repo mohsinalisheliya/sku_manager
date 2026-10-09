@@ -3,9 +3,12 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from polars import Decimal
 from unittest.mock import patch
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+import tempfile
 import qrcode
 
-from .models import DispatchLog, JewelrySKU, Platform, PlatformPrice, StockBatch, StorageBox
+from .models import AppSettings, DispatchLog, JewelrySKU, Platform, PlatformPrice, StockBatch, StorageBox
 from .views import COLOR_PALETTE
 
 
@@ -278,3 +281,44 @@ class LabelPrintingTests(TestCase):
 			f"{self.url}?batch={created_batch.pk}&copies=6",
 			fetch_redirect_response=False,
 		)
+
+	@override_settings(MEDIA_ROOT=tempfile.gettempdir())
+	def test_settings_upload_logo_and_label_uses_it(self):
+		logo = SimpleUploadedFile('label-logo.png', b'fake-image-data', content_type='image/png')
+		response = self.client.post(reverse('app_settings'), {
+			'brand_name': 'TEST BRAND',
+			'tagline': '',
+			'currency_symbol': '$',
+			'low_stock_threshold': '5',
+			'support_contact': '',
+			'label_logo': logo,
+		})
+
+		self.assertRedirects(response, reverse('app_settings'))
+		settings_obj = AppSettings.get_settings()
+		self.assertTrue(settings_obj.label_logo.name.endswith('label-logo.png'))
+
+		label_response = self.client.get(self.url)
+		self.assertEqual(label_response.status_code, 200)
+		self.assertEqual(label_response.context['label_logo_url'], settings_obj.label_logo.url)
+		self.assertContains(label_response, settings_obj.label_logo.url)
+
+	@override_settings(MEDIA_ROOT=tempfile.gettempdir())
+	def test_settings_can_remove_uploaded_label_logo(self):
+		settings_obj = AppSettings.get_settings()
+		settings_obj.label_logo.save(
+			'existing-logo.png',
+			SimpleUploadedFile('existing-logo.png', b'fake-image-data', content_type='image/png'),
+		)
+
+		self.client.post(reverse('app_settings'), {
+			'brand_name': settings_obj.brand_name,
+			'tagline': settings_obj.tagline,
+			'currency_symbol': settings_obj.currency_symbol,
+			'low_stock_threshold': settings_obj.low_stock_threshold,
+			'support_contact': settings_obj.support_contact,
+			'remove_label_logo': '1',
+		})
+
+		settings_obj.refresh_from_db()
+		self.assertFalse(settings_obj.label_logo)

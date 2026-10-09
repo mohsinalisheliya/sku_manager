@@ -90,7 +90,7 @@
               <td class="py-3 px-4">
                 <div class="flex items-center gap-3">
                   {% if item.image %}
-                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0">
+                    <img src="{{ item.image.url }}" alt="{{ item.name }}" loading="lazy" class="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0">
                   {% else %}
                     <div class="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-lg shrink-0">💎</div>
                   {% endif %}
@@ -112,15 +112,14 @@
               </td>
 
               <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
-                <a href="{% url 'sku_print_label' item.pk %}"
-                   class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg font-bold transition"
-                   title="Print SKU and batch labels">🏷️ Print Label</a>
                 {% if item.edit_batch_id %}
                   <a href="{% url 'stock_action' item.pk %}?edit_batch={{ item.edit_batch_id }}"
                      class="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-3 py-1.5 rounded-lg font-bold transition">✏️ Edit</a>
                 {% else %}
                   <span class="inline-flex items-center gap-1 bg-slate-50 dark:bg-slate-900 text-slate-400 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg font-bold cursor-not-allowed" title="No active batch to edit">✏️ Edit</span>
                 {% endif %}
+                <a href="{% url 'sku_print_label' item.pk %}" target="_blank" title="Print QR label"
+                   class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg font-bold transition">🏷️ Label</a>
                 <a href="{% url 'stock_action' item.pk %}"
                    class="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-1.5 rounded-lg font-black transition shadow-xs">+ Add</a>
               </td>

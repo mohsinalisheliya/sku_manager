@@ -296,7 +296,8 @@ class LabelPrintingTests(TestCase):
 
 		self.assertRedirects(response, reverse('app_settings'))
 		settings_obj = AppSettings.get_settings()
-		self.assertTrue(settings_obj.label_logo.name.endswith('label-logo.png'))
+		self.assertTrue(settings_obj.label_logo.name.startswith('branding/'))
+		self.assertTrue(settings_obj.label_logo.name.endswith('.png'))
 
 		label_response = self.client.get(self.url)
 		self.assertEqual(label_response.status_code, 200)

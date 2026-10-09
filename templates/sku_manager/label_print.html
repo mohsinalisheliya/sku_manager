@@ -11,7 +11,7 @@
     --lw: 50mm;        /* one sticker width  */
     --lh: 25mm;        /* one sticker height */
     --gx: 3mm;         /* gap between the 2 stickers */
-    --gy: 3mm;         /* gap between rows           */
+    --gy: 0mm;         /* physical roll gap is handled by the printer sensor */
     --ox: 0mm;         /* print nudge left/right (set from toolbar) */
     --oy: 0mm;         /* print nudge up/down    (set from toolbar) */
     --side: calc((var(--page-w) - 2 * var(--lw) - var(--gx)) / 2);  /* = 1mm each side */
@@ -36,7 +36,7 @@
   /* ---------- one printed row = 2 stickers side by side ---------- */
   .row {
     width: var(--page-w);
-    height: calc(var(--lh) + var(--gy));
+    height: var(--lh);
     padding: 0 var(--side);
     display: flex;
     gap: var(--gx);
@@ -76,14 +76,13 @@
   }
 
   /* ---------- printing ---------- */
-  @page { size: 105mm 28mm; margin: 0; }
+  @page { size: 105mm 25mm; margin: 0; }
   @media print {
     html, body { background: #fff !important; width: 105mm; }
     .toolbar, .tips, .no-print { display: none !important; }
     .sheet { padding: 0; display: block; gap: 0; }
     .scale { zoom: 1; }
-    .row { break-after: page; page-break-after: always; box-shadow: none; }
-    .row:last-child { break-after: auto; page-break-after: auto; }
+    .row { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
     .label { outline: none; border-radius: 0; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
@@ -119,7 +118,7 @@
 
 <div class="tips no-print">
   <b>Roll:</b> 105 mm wide • 2 stickers per row • each sticker 50 × 25 mm • 3 mm gap • <b>{{ rows|length }} row{{ rows|length|pluralize }}</b> will be printed.<br>
-  <b>In the print dialog:</b> choose your label printer, set paper size to <b>105 × 28 mm</b> (or your driver's 105 mm roll), margins <b>None</b>, scale <b>100%</b>, turn headers/footers off.
+  <b>In the print dialog:</b> choose your label printer, set paper size to <b>105 × 25 mm</b> (or configure a 105 mm-wide 25 mm label in the printer driver), margins <b>None</b>, scale <b>100%</b>, turn headers/footers off. The printer sensor feeds the physical gap between labels.
   If the print is shifted, use <b>Nudge X / Y</b> above (saved on this device) and test with 1 row.
 </div>
 

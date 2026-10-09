@@ -229,7 +229,7 @@ class LabelPrintingTests(TestCase):
 		self.assertContains(response, 'NEW-LABEL')
 		self.assertContains(response, 'data:image/png;base64,')
 
-	def test_label_qr_encodes_dispatch_url(self):
+	def test_label_qr_encodes_only_the_sku(self):
 		payloads = []
 		original_add_data = qrcode.QRCode.add_data
 
@@ -241,10 +241,8 @@ class LabelPrintingTests(TestCase):
 			label_response = self.client.get(self.url)
 
 		self.assertEqual(label_response.status_code, 200)
-		dispatch_url = self.client.get(self.url).wsgi_request.build_absolute_uri(
-			reverse('scan_dispatch', args=[self.item.sku]),
-		)
-		self.assertEqual(payloads, [dispatch_url])
+		self.assertEqual(payloads, [self.item.sku])
+		self.assertEqual(label_response.context['qr_payload'], self.item.sku)
 
 	def test_inventory_has_print_label_action_for_each_sku(self):
 		response = self.client.get(reverse('inventory_list'))

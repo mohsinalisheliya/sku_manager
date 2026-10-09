@@ -648,6 +648,7 @@ def scan_dispatch(request, sku):
 @login_required(login_url='login')
 def sku_print_label(request, pk):
     item = get_object_or_404(JewelrySKU.objects.select_related('storage_box'), pk=pk)
+    settings_obj = AppSettings.get_settings()
     batches = list(item.batches.order_by('-created_at', '-pk'))
     batch = None
     batch_id = request.GET.get('batch', '')
@@ -690,6 +691,7 @@ def sku_print_label(request, pk):
         'rows': rows,
         'qr_base64': qr_base64,
         'qr_payload': item.sku,
+        'label_logo_url': settings_obj.label_logo.url if settings_obj.label_logo else '',
     })
 
 def sku_qr_download(request, pk):
@@ -743,6 +745,11 @@ def app_settings_view(request):
         threshold = request.POST.get('low_stock_threshold', '5').strip()
         settings_obj.low_stock_threshold = int(threshold) if threshold.isdigit() else 5
         settings_obj.support_contact = request.POST.get('support_contact', '').strip()
+        uploaded_logo = request.FILES.get('label_logo')
+        if uploaded_logo:
+            settings_obj.label_logo = uploaded_logo
+        elif request.POST.get('remove_label_logo') and settings_obj.label_logo:
+            settings_obj.label_logo.delete(save=False)
         settings_obj.save()
         messages.success(request, "Settings updated successfully!")
         return redirect('app_settings')

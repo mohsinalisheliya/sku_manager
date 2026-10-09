@@ -160,6 +160,7 @@ class DispatchLog(models.Model):
 
 class AppSettings(models.Model):
     brand_name = models.CharField(max_length=100, default='TATKAL PICK')
+    label_logo = models.ImageField(upload_to='branding/', blank=True, null=True)
     tagline = models.CharField(max_length=150, blank=True, default='Universal Inventory & Dispatch')
     currency_symbol = models.CharField(max_length=10, default='₹')
     low_stock_threshold = models.PositiveIntegerField(default=5)

@@ -4,19 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Label - {{ item.sku }}</title>
-<link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
-<link rel="icon" type="image/svg+xml" href="{% static 'tatkal-pick-icon.svg' %}">
 <style>
   /* ===== LABEL ROLL SETTINGS (edit here if your roll changes) ===== */
   :root {
     --page-w: 105mm;   /* full roll width */
     --lw: 50mm;        /* one sticker width  */
     --lh: 25mm;        /* one sticker height */
-    --gx: 3mm;         /* gap between the 2 stickers */
-    --gy: 0mm;         /* physical roll gap is handled by the printer sensor */
+    --gx: 0mm;         /* gap between the 2 stickers (your roll: none) */
+    --rowh: 24.8mm;    /* row height: a hair under the 25mm paper so it can never spill onto a 2nd (blank) page */
     --ox: 0mm;         /* print nudge left/right (set from toolbar) */
     --oy: 0mm;         /* print nudge up/down    (set from toolbar) */
-    --side: calc((var(--page-w) - 2 * var(--lw) - var(--gx)) / 2);  /* = 1mm each side */
+    --side: calc((var(--page-w) - 2 * var(--lw) - var(--gx)) / 2);  /* = 2.5mm each side when gap is 0 */
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,8 +22,6 @@
 
   /* ---------- screen toolbar (never printed) ---------- */
   .toolbar { background: #0f172a; color: #e2e8f0; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 14px; align-items: end; font-size: 12px; position: sticky; top: 0; z-index: 5; }
-  .brand-mark { display: flex; align-items: center; gap: 8px; color: #f8fafc; font-size: 13px; font-weight: 800; }
-  .brand-mark img { width: 28px; height: 28px; padding: 3px; border-radius: 7px; background: #fff; }
   .toolbar label { display: flex; flex-direction: column; gap: 3px; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; color: #94a3b8; }
   .toolbar input, .toolbar select { background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 8px; padding: 7px 9px; font-size: 12px; min-width: 70px; }
   .toolbar select { min-width: 220px; }
@@ -40,7 +36,9 @@
   /* ---------- one printed row = 2 stickers side by side ---------- */
   .row {
     width: var(--page-w);
-    height: var(--lh);
+    height: var(--rowh);
+    overflow: hidden;
+    break-inside: avoid;
     padding: 0 var(--side);
     display: flex;
     gap: var(--gx);
@@ -64,10 +62,8 @@
   }
   .qr { width: 19mm; height: 19mm; flex: none; image-rendering: pixelated; image-rendering: crisp-edges; }
   .info { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: .3mm 0; }
-  .pname-row { display: flex; align-items: center; gap: 1mm; min-height: 5mm; min-width: 0; }
-  .brand-logo { width: 6mm; height: 5mm; flex: none; object-fit: contain; }
   .pname { font-size: 7.4pt; font-weight: 800; line-height: 1.12; text-transform: uppercase;
-           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+           display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
   .psku { font-family: "Courier New", monospace; font-size: 5.2pt; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
   .pbatch { border-top: .25mm solid #000; padding-top: .5mm; overflow: hidden; }
   .pbatch small { display: block; font-size: 4.4pt; font-weight: 700; letter-spacing: .05em; line-height: 1.1; }
@@ -84,11 +80,12 @@
   /* ---------- printing ---------- */
   @page { size: 105mm 25mm; margin: 0; }
   @media print {
-    html, body { background: #fff !important; width: 105mm; }
+    html, body { background: #fff !important; width: 105mm; height: auto; margin: 0; padding: 0; }
     .toolbar, .tips, .no-print { display: none !important; }
     .sheet { padding: 0; display: block; gap: 0; }
     .scale { zoom: 1; }
-    .row { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
+    .row { break-after: page; page-break-after: always; box-shadow: none; }
+    .row:last-child { break-after: auto; page-break-after: auto; }
     .label { outline: none; border-radius: 0; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
@@ -97,7 +94,6 @@
 <body>
 
 <form class="toolbar no-print" method="get" id="ctl">
-  <div class="brand-mark"><img src="{% static 'tatkal-pick-icon.svg' %}" alt=""><span>Print Labels</span></div>
   <label>Batch
     <select name="batch" onchange="this.form.submit()">
       {% for b in batches %}
@@ -110,6 +106,9 @@
   <label>Number of labels
     <input type="number" name="copies" min="1" max="500" value="{{ copies }}" onchange="this.form.submit()">
   </label>
+  <label>Gap between 2 stickers (mm)
+    <input type="number" id="gx" step="0.5" min="0" max="10" value="0">
+  </label>
   <label>Nudge X (mm)
     <input type="number" id="nx" step="0.25" value="0">
   </label>
@@ -120,12 +119,12 @@
     <select id="guides" style="min-width:90px"><option value="on">Show</option><option value="off">Hide</option></select>
   </label>
   <button type="button" class="btn" onclick="window.print()">🖨️ Print {{ copies }} label{{ copies|pluralize }}</button>
-  <a class="btn ghost" href="{% url 'inventory_list' %}">← Inventory</a>
+  <a class="btn ghost" href="javascript:history.back()">← Back</a>
 </form>
 
 <div class="tips no-print">
-  <b>Roll:</b> 105 mm wide • 2 stickers per row • each sticker 50 × 25 mm • 3 mm gap • <b>{{ rows|length }} row{{ rows|length|pluralize }}</b> will be printed.<br>
-  <b>In the print dialog:</b> choose your label printer, set paper size to <b>105 × 25 mm</b> (or configure a 105 mm-wide 25 mm label in the printer driver), margins <b>None</b>, scale <b>100%</b>, turn headers/footers off. The printer sensor feeds the physical gap between labels.
+  <b>Roll:</b> 105 mm wide • 2 stickers per row • each sticker 50 × 25 mm • gap between the 2 stickers: set above (default 0) • <b>{{ rows|length }} row{{ rows|length|pluralize }}</b> will be printed.<br>
+  <b>In the print dialog:</b> choose your label printer, set paper size to <b>105 × 25 mm</b> (your sticker size; the printer finds the gap by itself), margins <b>None</b>, scale <b>100%</b>, turn headers/footers off.
   If the print is shifted, use <b>Nudge X / Y</b> above (saved on this device) and test with 1 row.
 </div>
 
@@ -135,12 +134,9 @@
       <div class="row">
         {% for n in row %}
           <div class="label">
-            <img class="qr" src="data:image/png;base64,{{ qr_base64 }}" alt="QR {{ item.sku }}">
+            <img class="qr" style="width:{{ qr_mm }}mm;height:{{ qr_mm }}mm" src="data:image/png;base64,{{ qr_base64 }}" alt="QR {{ item.sku }}">
             <div class="info">
-              <div class="pname-row">
-                {% if label_logo_url %}<img class="brand-logo" src="{{ label_logo_url }}" alt="Brand logo">{% endif %}
-                <div class="pname">{{ item.name }}</div>
-              </div>
+              <div class="pname">{{ item.name }}</div>
               <div class="psku">{{ item.sku }}</div>
               <div class="pbatch"><small>BATCH NO</small><b>{% if batch %}{{ batch.batch_no }}{% else %}—{% endif %}</b></div>
             </div>
@@ -154,20 +150,22 @@
 <script>
   // remember nudge + guide settings on this device
   const root = document.documentElement;
-  const nx = document.getElementById('nx'), ny = document.getElementById('ny'), gd = document.getElementById('guides');
+  const nx = document.getElementById('nx'), ny = document.getElementById('ny'), gd = document.getElementById('guides'), gxi = document.getElementById('gx');
   function apply() {
     root.style.setProperty('--ox', (parseFloat(nx.value) || 0) + 'mm');
     root.style.setProperty('--oy', (parseFloat(ny.value) || 0) + 'mm');
+    root.style.setProperty('--gx', (parseFloat(gxi.value) || 0) + 'mm');
     document.body.classList.toggle('guides-off', gd.value === 'off');
-    try { localStorage.setItem('labelPrint', JSON.stringify({ x: nx.value, y: ny.value, g: gd.value })); } catch (e) {}
+    try { localStorage.setItem('labelPrint', JSON.stringify({ x: nx.value, y: ny.value, g: gd.value, gx: gxi.value })); } catch (e) {}
   }
   try {
     const s = JSON.parse(localStorage.getItem('labelPrint') || '{}');
     if (s.x !== undefined) nx.value = s.x;
     if (s.y !== undefined) ny.value = s.y;
     if (s.g) gd.value = s.g;
+    if (s.gx !== undefined) gxi.value = s.gx;
   } catch (e) {}
-  [nx, ny, gd].forEach(el => el.addEventListener('input', apply));
+  [nx, ny, gd, gxi].forEach(el => el.addEventListener('input', apply));
   apply();
 </script>
 </body>

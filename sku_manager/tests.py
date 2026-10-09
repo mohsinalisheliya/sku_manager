@@ -249,7 +249,7 @@ class LabelPrintingTests(TestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, reverse('sku_print_label', args=[self.item.pk]))
-		self.assertContains(response, 'Print Label')
+		self.assertContains(response, '>🏷️ Label</a>')
 
 	def test_label_page_falls_back_for_unknown_batch_and_clamps_copies(self):
 		response = self.client.get(self.url, {'batch': '999999', 'copies': '900'})

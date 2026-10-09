@@ -228,6 +228,8 @@ class LabelPrintingTests(TestCase):
 		self.assertContains(response, self.item.sku)
 		self.assertContains(response, 'NEW-LABEL')
 		self.assertContains(response, 'data:image/png;base64,')
+		inventory_url = reverse('inventory_list')
+		self.assertContains(response, f'href="{inventory_url}"')
 
 	def test_label_qr_encodes_only_the_sku(self):
 		payloads = []

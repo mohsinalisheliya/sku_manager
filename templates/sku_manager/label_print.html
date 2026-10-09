@@ -118,7 +118,7 @@
     <select id="guides" style="min-width:90px"><option value="on">Show</option><option value="off">Hide</option></select>
   </label>
   <button type="button" class="btn" onclick="window.print()">🖨️ Print {{ copies }} label{{ copies|pluralize }}</button>
-  <a class="btn ghost" href="javascript:history.back()">← Back</a>
+  <a class="btn ghost" href="{% url 'inventory_list' %}">← Inventory</a>
 </form>
 
 <div class="tips no-print">

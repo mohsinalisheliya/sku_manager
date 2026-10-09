@@ -24,6 +24,8 @@
 
   /* ---------- screen toolbar (never printed) ---------- */
   .toolbar { background: #0f172a; color: #e2e8f0; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 14px; align-items: end; font-size: 12px; position: sticky; top: 0; z-index: 5; }
+  .brand-mark { display: flex; align-items: center; gap: 8px; color: #f8fafc; font-size: 13px; font-weight: 800; }
+  .brand-mark img { width: 28px; height: 28px; padding: 3px; border-radius: 7px; background: #fff; }
   .toolbar label { display: flex; flex-direction: column; gap: 3px; font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; color: #94a3b8; }
   .toolbar input, .toolbar select { background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 8px; padding: 7px 9px; font-size: 12px; min-width: 70px; }
   .toolbar select { min-width: 220px; }
@@ -93,6 +95,7 @@
 <body>
 
 <form class="toolbar no-print" method="get" id="ctl">
+  <div class="brand-mark"><img src="{% static 'tatkal-pick-icon.svg' %}" alt=""><span>Print Labels</span></div>
   <label>Batch
     <select name="batch" onchange="this.form.submit()">
       {% for b in batches %}

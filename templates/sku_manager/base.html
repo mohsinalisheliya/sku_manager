@@ -1,9 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Tatkal Pick - Universal Inventory & Fast Dispatch{% endblock %}</title>
+  <link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="{% static 'tatkal-pick-icon.svg' %}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -47,12 +50,7 @@
       <!-- Universal Tatkal Pick Logo -->
       <a href="{% url 'inventory_list' %}" class="flex items-center gap-3 px-1 py-1">
         <div class="w-10 h-10 min-w-[40px] rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950">
-          <svg class="w-6 h-6 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-            <path d="m3.3 7 8.7 5 8.7-5"/>
-            <path d="M12 22V12"/>
-            <path d="m13 7-4 5h4l-2 5" class="stroke-slate-950 fill-amber-300" stroke-width="2"/>
-          </svg>
+          <img src="{% static 'tatkal-pick-icon.svg' %}" class="w-7 h-7 object-contain" alt="Tatkal Pick">
         </div>
         <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
           <div class="font-black text-slate-900 dark:text-white text-base tracking-wide leading-tight">TATKAL PICK</div>

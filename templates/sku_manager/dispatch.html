@@ -1,9 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Quick Dispatch: {{ item.sku }} - Tatkal Pick</title>
+  <link rel="icon" href="{% static 'favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="{% static 'tatkal-pick-icon.svg' %}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -28,7 +31,7 @@
     <!-- Top Bar -->
     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
       <div class="flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shadow-sm"><img src="{% static 'tatkal-pick-icon.svg' %}" class="w-full h-full object-contain" alt="Tatkal Pick"></span>
         <span class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Fast Dispatch Station</span>
       </div>
       <a href="{% url 'sku_inventory' %}" class="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-lg font-semibold shadow-xs transition">

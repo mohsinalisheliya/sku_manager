@@ -668,14 +668,13 @@ def sku_print_label(request, pk):
     if copies % 2:
         rows.append([1])
 
-    dispatch_url = request.build_absolute_uri(reverse('scan_dispatch', args=[item.sku]))
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
         border=1,
     )
-    qr.add_data(dispatch_url)
+    qr.add_data(item.sku)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
 
@@ -690,7 +689,7 @@ def sku_print_label(request, pk):
         'copies': copies,
         'rows': rows,
         'qr_base64': qr_base64,
-        'dispatch_url': dispatch_url,
+        'qr_payload': item.sku,
     })
 
 def sku_qr_download(request, pk):

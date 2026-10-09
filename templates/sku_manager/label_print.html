@@ -139,10 +139,7 @@
             <div class="info">
               <div class="pname-row">
                 {% if label_logo_url %}<img class="brand-logo" src="{{ label_logo_url }}" alt="Brand logo">{% endif %}
-                <div class="pname-row">
-                  {% if label_logo_url %}<img class="brand-logo" src="{{ label_logo_url }}" alt="Brand logo">{% endif %}
-                  <div class="pname">{{ item.name }}</div>
-                </div>
+                <div class="pname">{{ item.name }}</div>
               </div>
               <div class="psku">{{ item.sku }}</div>
               <div class="pbatch"><small>BATCH NO</small><b>{% if batch %}{{ batch.batch_no }}{% else %}—{% endif %}</b></div>

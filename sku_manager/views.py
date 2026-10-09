@@ -691,6 +691,7 @@ def sku_print_label(request, pk):
         'rows': rows,
         'qr_base64': qr_base64,
         'qr_payload': item.sku,
+        'qr_mm': 19,
         'label_logo_url': settings_obj.label_logo.url if settings_obj.label_logo else '',
     })
 
